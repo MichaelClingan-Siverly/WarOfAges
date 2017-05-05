@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+    <EditText
+        android:layout_width="250dp"
+        android:layout_height="wrap_content"
+        android:text="Error"
+        android:textSize="30dp"
+        android:layout_marginLeft="70dp"
+        android:layout_marginTop="0dp"
+        android:id="@+id/regerror"
+        android:visibility="invisible" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" >
+
+        <EditText
+            android:layout_width="250dp"
+            android:layout_height="wrap_content"
+            android:hint="@string/Username"
+            android:textSize="40sp"
+            android:layout_marginLeft="70dp"
+            android:layout_marginTop="210dp"
+            android:id="@+id/rusername" />
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" >
+        <EditText
+            android:layout_width="250dp"
+            android:layout_height="wrap_content"
+            android:hint="@string/Password"
+            android:textSize="40sp"
+            android:layout_marginLeft="70dp"
+            android:id="@+id/rpassword" />
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" >
+        <Button
+            android:layout_width="250dp"
+            android:layout_height="wrap_content"
+            android:text="@string/Register"
+            android:textSize="40sp"
+            android:layout_marginLeft="70dp"
+            android:id="@+id/logmein"/>
+    </LinearLayout>
+</LinearLayout>

@@ -34,33 +34,33 @@ public class ClientComm {
     public ClientComm(Context context) {
         singletonQueue = SingletonQueue.GetInstance(context);
     }
-    /**
-     *
-     * @param serverPath A string with the last part of the URL. (ex. if you were to go to http://proj-309-yt-05.cs.iastate.edu/login.php. You would put "login.php" as the server path
-     * @param jsonObject the request
-     * @param callback returns a JsonObject. This is the server response.
-     */
-    public void serverPostRequest(String serverPath, final JSONObject jsonObject, final VolleyCallback<JSONObject> callback){
-        JsonObjectRequest jsonObjReq = new JsonObjectRequest(Request.Method.POST, buildUrl(serverPath), jsonObject, new Response.Listener<JSONObject>(){
-            @Override
-            public void onResponse(JSONObject response){
-                callback.onSuccess(response);
-            }
-        },
-                new Response.ErrorListener(){
-                    @Override
-                    public void onErrorResponse(VolleyError error){
-                        try {
-                            jsonObject.put("VolleyError", error.toString());
-                            callback.onSuccess(jsonObject);
-                        }
-                        catch(JSONException e){
-                            //I'm forced to have a catch when putting to a JsonObject
-                        }
-                    }
-                });
-        singletonQueue.addToRequestQueue(jsonObjReq);
-    }
+//    /**
+//     *
+//     * @param serverPath A string with the last part of the URL. (ex. if you were to go to http://proj-309-yt-05.cs.iastate.edu/login.php. You would put "login.php" as the server path
+//     * @param jsonObject the request
+//     * @param callback returns a JsonObject. This is the server response.
+//     */
+//    public void serverPostRequest(String serverPath, final JSONObject jsonObject, final VolleyCallback<JSONObject> callback){
+//        JsonObjectRequest jsonObjReq = new JsonObjectRequest(Request.Method.POST, buildUrl(serverPath), jsonObject, new Response.Listener<JSONObject>(){
+//            @Override
+//            public void onResponse(JSONObject response){
+//                callback.onSuccess(response);
+//            }
+//        },
+//                new Response.ErrorListener(){
+//                    @Override
+//                    public void onErrorResponse(VolleyError error){
+//                        try {
+//                            jsonObject.put("VolleyError", error.toString());
+//                            callback.onSuccess(jsonObject);
+//                        }
+//                        catch(JSONException e){
+//                            //I'm forced to have a catch when putting to a JsonObject
+//                        }
+//                    }
+//                });
+//        singletonQueue.addToRequestQueue(jsonObjReq);
+//    }
     /**
      *
      * @param serverPath A string with the last part of the URL. (ex. if you were to go to http://proj-309-yt-05.cs.iastate.edu/login.php. You would put "login.php" as the server path

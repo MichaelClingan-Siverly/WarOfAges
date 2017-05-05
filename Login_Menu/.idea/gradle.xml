@@ -8,8 +8,9 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/UIStuff" />
             <option value="$PROJECT_DIR$/clientComm" />
+            <option value="$PROJECT_DIR$/units" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />
