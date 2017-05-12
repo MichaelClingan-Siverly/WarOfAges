@@ -1,4 +1,4 @@
-use db309yt05;
+
 
 CREATE TABLE users (
 userID varchar(10), 
