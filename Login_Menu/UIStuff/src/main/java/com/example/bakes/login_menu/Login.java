@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -41,7 +42,8 @@ public class Login extends AppCompatActivity {
     }
 
     private void displayText(String displayThis){
-        EditText t = (EditText) findViewById(R.id.logerror);
+        TextView t = (TextView) findViewById(R.id.logerror);
+//        EditText t = (EditText) findViewById(R.id.logerror);
         t.setText(displayThis);
         t.setVisibility(View.VISIBLE);
     }

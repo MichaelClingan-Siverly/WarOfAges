@@ -58,7 +58,7 @@ public class UIAdmin extends AppCompatActivity {
         //add text boxes to popup to enter mapsize
         sizeBox = new EditText(this);
         sizeBox.setInputType(InputType.TYPE_CLASS_NUMBER);
-        sizeBox.setText("10");
+        sizeBox.setHint("ex: 10");
         sizeBox.setId(10005);
         ViewGroup.LayoutParams sizeParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -67,7 +67,7 @@ public class UIAdmin extends AppCompatActivity {
         Button enter = new Button(this);
         enter.setText("enter");
         sizeLayout.addView(text, sizeParams);
-        sizeLayout.addView(sizeBox, sizeParams);
+        sizeLayout.addView(sizeBox, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         sizeLayout.addView(enter, sizeParams);
         sizePopup.setContentView(sizeLayout);
         sizePopup.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -97,11 +97,11 @@ public class UIAdmin extends AppCompatActivity {
         });
 
         //change end turn button to create button
-        Button endTurn = (Button) findViewById(R.id.B3);
-        endTurn.setText("create");
+        Button b = (Button) findViewById(R.id.B3);
+        b.setText("create");
 
         //on click listener for create button
-        Button b = (Button)findViewById(R.id.B3);
+//        Button b = (Button)findViewById(R.id.B3);
         b.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -288,7 +288,7 @@ public class UIAdmin extends AppCompatActivity {
             }
             else if(changing != -1) {
                 if(v.getId() == 10000 + desert){
-                    ImageView toChange = (ImageView) findViewById(changing);
+                    ImageView toChange = (ImageView) findViewById(changing + mapSize);
                     toChange.setImageResource(R.drawable.p1);
                     popup.dismiss();
                     sender.deleteTile(types[changing], changing);
@@ -297,7 +297,7 @@ public class UIAdmin extends AppCompatActivity {
                     changing = -1;
                 }
                 else if(v.getId() == 10000 + forest){
-                    ImageView toChange = (ImageView) findViewById(changing);
+                    ImageView toChange = (ImageView) findViewById(changing + mapSize);
                     toChange.setImageResource(R.drawable.p2);
                     popup.dismiss();
                     sender.deleteTile(types[changing], changing);
@@ -306,7 +306,7 @@ public class UIAdmin extends AppCompatActivity {
                     changing = -1;
                 }
                 else if(v.getId() == 10000 + meadow){
-                    ImageView toChange = (ImageView) findViewById(changing);
+                    ImageView toChange = (ImageView) findViewById(changing + mapSize);
                     toChange.setImageResource(R.drawable.p3);
                     popup.dismiss();
                     sender.deleteTile(types[changing], changing);
