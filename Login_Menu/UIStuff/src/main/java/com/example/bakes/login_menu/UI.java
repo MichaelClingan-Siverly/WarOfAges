@@ -38,6 +38,12 @@ import coms309.mike.units.Unit;
 public class UI extends AppCompatActivity {
     boolean movedToOtherIntent = false;
 
+    private final int MOVE_ICON_ID = 10000;
+    private final int ARCHER_ICON_ID = 10001;
+    private final int CAVALRY_ICON_ID = 10002;
+    private final int SPEAR_ICON_ID = 10003;
+    private final int SWORD_ICON_ID = 10004;
+
     //The number of squares in the map. Needs clean squareroot
     static int mapSize = 100;
     //size of the map tiles image
@@ -99,20 +105,20 @@ public class UI extends AppCompatActivity {
         image4 = new ImageView(this);
         image5 = new ImageView(this);
         ViewGroup.LayoutParams layoutParams = new LinearLayout.LayoutParams(150, 150);
-        image1.setImageResource(R.drawable.p11);
-        image1.setId(10000);
+        image1.setImageResource(R.drawable.move_icon);
+        image1.setId(MOVE_ICON_ID);
         image1.setOnClickListener(onClickListener);
         image2.setImageResource(R.drawable.archer_friendly);
-        image2.setId(10001);
+        image2.setId(ARCHER_ICON_ID);
         image2.setOnClickListener(onClickListener);
         image3.setImageResource(R.drawable.cavalry_friendly);
-        image3.setId(10002);
+        image3.setId(CAVALRY_ICON_ID);
         image3.setOnClickListener(onClickListener);
         image4.setImageResource(R.drawable.spear_friendly);
-        image4.setId(10003);
+        image4.setId(SPEAR_ICON_ID);
         image4.setOnClickListener(onClickListener);
         image5.setImageResource(R.drawable.sword_friendly);
-        image5.setId(10004);
+        image5.setId(SWORD_ICON_ID);
         image5.setOnClickListener(onClickListener);
 
         popLayout.addView(image1, layoutParams);
@@ -434,7 +440,7 @@ public class UI extends AppCompatActivity {
                         double[] stats = ((ActivePlayer) player).getEnemyStats(currentMapClicked);
                         setInfoBar("Enemy Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
                     }//if click on empty space, display cash
-                    else if ((movingUnit == null) && (v.getId() < 10000) && (player instanceof ActivePlayer)) {
+                    else if ((movingUnit == null) && (v.getId() < MOVE_ICON_ID) && (player instanceof ActivePlayer)) {
                         //display cash
                         setInfoBar("Cash: " + cash);
                     }
@@ -451,7 +457,7 @@ public class UI extends AppCompatActivity {
                     else if ((unitVtown > -1) && (player instanceof ActivePlayer)) {
                         movingUnit = getUnitFromMap(unitVtown, true);
 
-                        if (v.getId() == 10000) {//clicked on move button
+                        if (v.getId() == MOVE_ICON_ID) {//clicked on move button
                             // I have this little bit in a few places. feels sloppy, but all of UI feels slopy
                             Integer moves[] = getMoves(movingUnit);
                             Integer attacks[] = getAttackRange(movingUnit);
@@ -483,9 +489,9 @@ public class UI extends AppCompatActivity {
                             townMenu.dismiss();
                         }
                         //TODO
-                        else if (v.getId() > 10000 && !movingUnit.checkIfMoved()) {//clicked on one of the add unit buttons
+                        else if (v.getId() > MOVE_ICON_ID && !movingUnit.checkIfMoved()) {//clicked on one of the add unit buttons
                             //take all surrounding tiles and add unit to first empty one
-                            int unitIDtoAdd = v.getId() - 10000;
+                            int unitIDtoAdd = v.getId() - MOVE_ICON_ID;
                             //surrounding tiles
                             Integer[] moves = ((ActivePlayer) player).checkArea(unitVtown, 1, unitIDtoAdd, terrainMap, false);
                             for (int move : moves) {

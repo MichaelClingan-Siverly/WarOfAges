@@ -18,12 +18,14 @@ import coms309.mike.clientcomm.VolleyCallback;
 
 public class Admin extends AppCompatActivity{
     private int countLength=0;
-    private ArrayList<String> Terrain= new ArrayList<>();
-    private ArrayList<String> MapID= new ArrayList<>();
+    private String[] terrainMap;
+//    private ArrayList<String> Terrain= new ArrayList<>();
+//    private ArrayList<String> MapID= new ArrayList<>();
     private int mapSize;
     private Context context;
     public Admin(Context context, int mapSize){
         this.mapSize=mapSize;
+        terrainMap = new String[mapSize];
         this.context=context;
     }
     public String enable(int size){
@@ -37,21 +39,9 @@ public class Admin extends AppCompatActivity{
             return "TooBig";
         }
     }
-    public void addTile(int terrain, int mapID){
-        Terrain.add(Integer.toString(terrain));
-        MapID.add(Integer.toString(mapID));
-        countLength++;
-    }
-    public boolean deleteTile(int terrain, int mapID){
-        if(Terrain.contains(Integer.toString(terrain))&& MapID.contains(Integer.toString(mapID))){
-            Terrain.remove(Integer.toString(terrain));
-            MapID.remove(Integer.toString(mapID));
-            countLength--;
-            return true;
-        }
-        else{
-            return false;
-        }
+    public void addTile(String terrain, int mapID){
+        terrainMap[mapID] = terrain;
+        int i = terrainMap.length;
     }
     public boolean sendMap(){
         if(!enable(mapSize).equals("JustRight")){
@@ -62,13 +52,13 @@ public class Admin extends AppCompatActivity{
         JSONArray map = new JSONArray();
         JSONObject terrainob = new JSONObject();
         JSONObject mapIDob = new JSONObject();
-        try{
-            mapIDob.put("MapID", MapID);
-            terrainob.put("TerrainID", Terrain);
-        }
-        catch (JSONException e){
-            System.out.println(e.toString());  //printing e itself can lead to errors.
-        }
+//        try{
+//            mapIDob.put("MapID", MapID);
+//            terrainob.put("TerrainID", Terrain);
+//        }
+//        catch (JSONException e){
+//            System.out.println(e.toString());  //printing e itself can lead to errors.
+//        }
         map.put(mapIDob);
         map.put(terrainob);
         comm.serverPostRequest("makeMap.php", map, new VolleyCallback<JSONArray>() {

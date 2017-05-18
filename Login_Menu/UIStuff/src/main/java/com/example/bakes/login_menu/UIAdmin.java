@@ -287,64 +287,41 @@ public class UIAdmin extends AppCompatActivity {
                 sender.sendMap();
             }
             else if(changing != -1) {
-                if(v.getId() == 10000 + desert){
+                int resId = 0;
+                String terrainName = "";
+                switch(v.getId() - 10000){
+                    case desert:
+                        resId = R.drawable.p1;
+                        terrainName = "desert";
+                        break;
+                    case forest:
+                        resId = R.drawable.p2;
+                        terrainName = "forest";
+                        break;
+                    case meadow:
+                        resId = R.drawable.p3;
+                        terrainName = "meadow";
+                        break;
+                    case mountain:
+                        resId = R.drawable.p4;
+                        terrainName = "mountain";
+                        break;
+                    case town:
+                        resId = R.drawable.p5;
+                        terrainName = "town";
+                        break;
+                    case pond:
+                        resId = R.drawable.p6;
+                        terrainName = "pond";
+                        break;
+                }
+                if(resId != 0){
                     ImageView toChange = (ImageView) findViewById(changing + mapSize);
-                    toChange.setImageResource(R.drawable.p1);
-                    popup.dismiss();
-                    sender.deleteTile(types[changing], changing);
-                    sender.addTile(desert, changing);
-                    types[changing] = desert;
-                    changing = -1;
+                    toChange.setImageResource(resId);
+                    sender.addTile(terrainName, changing);
                 }
-                else if(v.getId() == 10000 + forest){
-                    ImageView toChange = (ImageView) findViewById(changing + mapSize);
-                    toChange.setImageResource(R.drawable.p2);
-                    popup.dismiss();
-                    sender.deleteTile(types[changing], changing);
-                    sender.addTile(forest, changing);
-                    types[changing] = forest;
-                    changing = -1;
-                }
-                else if(v.getId() == 10000 + meadow){
-                    ImageView toChange = (ImageView) findViewById(changing + mapSize);
-                    toChange.setImageResource(R.drawable.p3);
-                    popup.dismiss();
-                    sender.deleteTile(types[changing], changing);
-                    sender.addTile(meadow, changing);
-                    types[changing] = meadow;
-                    changing = -1;
-                }
-                else if(v.getId() == 10000 + mountain){
-                    ImageView toChange = (ImageView) findViewById(changing + mapSize);
-                    toChange.setImageResource(R.drawable.p4);
-                    popup.dismiss();
-                    sender.deleteTile(types[changing], changing);
-                    sender.addTile(mountain, changing);
-                    types[changing] = mountain;
-                    changing = -1;
-                }
-                else if(v.getId() == 10000 + town){
-                    ImageView toChange = (ImageView) findViewById(changing + mapSize);
-                    toChange.setImageResource(R.drawable.p5);
-                    popup.dismiss();
-                    sender.deleteTile(types[changing], changing);
-                    sender.addTile(town, changing);
-                    types[changing] = town;
-                    changing = -1;
-                }
-                else if(v.getId() == 10000 + pond){
-                    ImageView toChange = (ImageView) findViewById(changing + mapSize);
-                    toChange.setImageResource(R.drawable.p6);
-                    popup.dismiss();
-                    sender.deleteTile(types[changing], changing);
-                    sender.addTile(pond, changing);
-                    types[changing] = pond;
-                    changing = -1;
-                }
-                else{
-                    popup.dismiss();
-                    changing = -1;
-                }
+                popup.dismiss();
+                changing = -1;
             }
             else{
                 ScrollView scroll = (ScrollView) findViewById(R.id.scroll);
