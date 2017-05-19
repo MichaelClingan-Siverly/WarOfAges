@@ -9,6 +9,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import coms309.mike.clientcomm.ClientComm;
 import coms309.mike.clientcomm.VolleyCallback;
@@ -18,8 +19,9 @@ import coms309.mike.clientcomm.VolleyCallback;
 
 public class Admin extends AppCompatActivity{
     private int countLength=0;
+    private int townCount = 0;
     private String[] terrainMap;
-//    private ArrayList<String> Terrain= new ArrayList<>();
+    //    private ArrayList<String> Terrain= new ArrayList<>();
 //    private ArrayList<String> MapID= new ArrayList<>();
     private int mapSize;
     private Context context;
@@ -28,39 +30,37 @@ public class Admin extends AppCompatActivity{
         terrainMap = new String[mapSize];
         this.context=context;
     }
-    public String enable(int size){
-        if(countLength==size){
-            return "JustRight";
-        }
-        else if(countLength<size){
-            return "TooSmall";
-        }
-        else{
-            return "TooBig";
-        }
-    }
     public void addTile(String terrain, int mapID){
+        if(terrainMap[mapID] == null)
+            countLength++;
+            //maps must contain at least two towns. I check here so I won't have to check in linear time on sendMap
+        else if(terrainMap[mapID].equals("town"))
+            townCount--;
+        if(terrain.equals("town"))
+            townCount++;
         terrainMap[mapID] = terrain;
-        int i = terrainMap.length;
     }
-    public boolean sendMap(){
-        if(!enable(mapSize).equals("JustRight")){
+    public void sendMap(){
+        if(countLength < mapSize){
             Toast.makeText(context, "Map is not complete.", Toast.LENGTH_SHORT).show();
-            return false;
+            return;
+        }
+        else if(townCount < 2){
+            Toast.makeText(context, "Maps must have at least two towns.", Toast.LENGTH_SHORT).show();
+            return;
         }
         ClientComm comm = new ClientComm(context);
         JSONArray map = new JSONArray();
-        JSONObject terrainob = new JSONObject();
-        JSONObject mapIDob = new JSONObject();
-//        try{
-//            mapIDob.put("MapID", MapID);
-//            terrainob.put("TerrainID", Terrain);
-//        }
-//        catch (JSONException e){
-//            System.out.println(e.toString());  //printing e itself can lead to errors.
-//        }
-        map.put(mapIDob);
-        map.put(terrainob);
+        JSONObject terrainObj = new JSONObject();
+        ArrayList<String> arrayList = new ArrayList<>(Arrays.asList(terrainMap));
+        try{
+            terrainObj.put("TerrainID", arrayList);
+        }
+        catch (JSONException e){
+            System.out.println(e.toString());  //printing e itself can lead to errors.
+        }
+
+        map.put(terrainObj);
         comm.serverPostRequest("makeMap.php", map, new VolleyCallback<JSONArray>() {
             @Override
             public void onSuccess(JSONArray result) {
@@ -76,11 +76,9 @@ public class Admin extends AppCompatActivity{
                 }
                 catch(JSONException e){
                     toast.setText("There was a client error. Sorry");
-                    //it'll default to returning false anyway
                 }
                 toast.show();
             }
         });
-        return true;
     }
 }

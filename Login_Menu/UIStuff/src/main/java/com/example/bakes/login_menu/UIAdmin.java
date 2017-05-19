@@ -3,6 +3,7 @@ package com.example.bakes.login_menu;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.media.Image;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.InputType;
@@ -115,64 +116,18 @@ public class UIAdmin extends AppCompatActivity {
     }
 
     public void initialize(){
-
         //initialize admin
         sender = new Admin(this.getApplicationContext(), mapSize);
 
         //initialize types
-        types = new int[mapSize];
+//        types = new int[mapSize];
 
         //change end turn button to send button
         Button endTurn = (Button) findViewById(R.id.B3);
         endTurn.setText("Send");
 
-        //Image selections of popup
-        ImageView image1;
-        ImageView image2;
-        ImageView image3;
-        ImageView image4;
-        ImageView image5;
-        ImageView image6;
-        //popup layout
-        LinearLayout popLayout;
-
         //initialize popup window
-        popup = new PopupWindow(this);
-        popLayout = new LinearLayout(this);
-        image1 = new ImageView(this);
-        image2 = new ImageView(this);
-        image3 = new ImageView(this);
-        image4 = new ImageView(this);
-        image5 = new ImageView(this);
-        image6 = new ImageView(this);
-        ViewGroup.LayoutParams layoutParams = new LinearLayout.LayoutParams(100, 100);
-        image1.setImageResource(R.drawable.p1);
-        image1.setId(10000 + desert);
-        image1.setOnClickListener(onClickListener);
-        image2.setImageResource(R.drawable.p2);
-        image2.setId(10000 + forest);
-        image2.setOnClickListener(onClickListener);
-        image3.setImageResource(R.drawable.p3);
-        image3.setId(10000 + meadow);
-        image3.setOnClickListener(onClickListener);
-        image4.setImageResource(R.drawable.p4);
-        image4.setId(10000 + mountain);
-        image4.setOnClickListener(onClickListener);
-        image5.setImageResource(R.drawable.p5);
-        image5.setId(10000 + town);
-        image5.setOnClickListener(onClickListener);
-        image6.setImageResource(R.drawable.p6);
-        image6.setId(10000 + pond);
-        image6.setOnClickListener(onClickListener);
-        popLayout.addView(image1, layoutParams);
-        popLayout.addView(image2, layoutParams);
-        popLayout.addView(image3, layoutParams);
-        popLayout.addView(image4, layoutParams);
-        popLayout.addView(image5, layoutParams);
-        popLayout.addView(image6, layoutParams);
-        popup.setContentView(popLayout);
-        popup.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
-        popup.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
+        initPopup();
 
         //add buttons to onClickListener(zoom in and zoom out)
         Button b = (Button)findViewById(R.id.B1);
@@ -228,6 +183,44 @@ public class UIAdmin extends AppCompatActivity {
         }
     }
 
+    private void initPopup(){
+        LinearLayout popLayout;
+        ImageView image;
+        popup = new PopupWindow(this);
+        popLayout = new LinearLayout(this);
+        for(int i = 0; i <= 5; i++){
+            image = new ImageView(this);
+            //I would have liked to iterate over the imageResources in a better way
+            //but I don't know how, so this is the best I can do right now
+            switch(i){
+                case desert:
+                    image.setImageResource(R.drawable.p1);
+                    break;
+                case forest:
+                    image.setImageResource(R.drawable.p2);
+                    break;
+                case meadow:
+                    image.setImageResource(R.drawable.p3);
+                    break;
+                case mountain:
+                    image.setImageResource(R.drawable.p4);
+                    break;
+                case town:
+                    image.setImageResource(R.drawable.p5);
+                    break;
+                case pond:
+                    image.setImageResource(R.drawable.p6);
+                    break;
+            }
+            image.setId(10000 + i);
+            image.setOnClickListener(onClickListener);
+            popLayout.addView(image, new LinearLayout.LayoutParams(100,100));
+        }
+        popup.setContentView(popLayout);
+        popup.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
+        popup.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
+    }
+
     public void loadTerrain(int terrain, int id){
         //gets imageview object at given id
         ImageView image = (ImageView) findViewById(id);
@@ -244,10 +237,6 @@ public class UIAdmin extends AppCompatActivity {
         image.setLayoutParams(parms);
         image = (ImageView) findViewById(id + mapSize);
         image.setLayoutParams(parms);
-
-//        //add terrain to sender and types
-//        sender.addTile(terrain, id);
-//        types[id] = terrain;
     }
 
     //processes clicks
