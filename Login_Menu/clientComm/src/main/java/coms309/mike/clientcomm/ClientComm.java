@@ -5,23 +5,14 @@ package coms309.mike.clientcomm;
  */
 import android.content.Context;
 import android.net.Uri;
-import android.util.JsonReader;
 
-import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.Response;
-import com.android.volley.RetryPolicy;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonArrayRequest;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
 
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.IOException;
-import java.io.StringReader;
 
 //TODO many ErrorListeners won't work. Some of the callbacks aren't meant to return Strings (I'll have to make JSON objects/arrays to hold the error)
 //TODO also, fix the else blocks for the same reasons. They shouldn't be reached, since my types seem to be correct, but still useful in an unfinished product

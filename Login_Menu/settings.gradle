@@ -1,1 +1,1 @@
-include ':UIStuff', ':clientComm', ':units'
+include ':UIStuff', ':clientComm', ':units', ':mapmaker'

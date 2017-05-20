@@ -3,4 +3,5 @@
     <string name="Password">Password</string>
     <string name="Register">Register</string>
     <string name="Login">Login as Player</string>
+    <string name="MidButton">Create</string>
 </resources>

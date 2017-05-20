@@ -1,4 +1,4 @@
-package com.example.bakes.login_menu;
+package warofages.mapmaker;
 
 import android.content.Context;
 import android.support.v7.app.AppCompatActivity;
