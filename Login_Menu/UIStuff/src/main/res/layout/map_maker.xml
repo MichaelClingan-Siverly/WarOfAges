@@ -69,5 +69,4 @@
             android:text="Zoom Out"
             android:id="@+id/B2"/>
     </LinearLayout>
-
 </LinearLayout>
