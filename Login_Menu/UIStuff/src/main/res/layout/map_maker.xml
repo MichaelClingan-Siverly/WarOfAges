@@ -2,7 +2,8 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:id="@+id/mapMaker">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -22,25 +23,9 @@
                     android:layout_height="match_parent"
                     android:id="@+id/inLayout">
                 </TableLayout>
-                <TableLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:id="@+id/outLayout">
-                </TableLayout>
             </RelativeLayout>
         </HorizontalScrollView>
     </ScrollView>
-    <LinearLayout
-        android:layout_width="fill_parent"
-        android:layout_height="0dp"
-        android:layout_weight="5"
-        android:orientation="horizontal">
-        <TextView
-            android:text=""
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
-            android:id="@+id/infoBar" />
-    </LinearLayout>
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="0dp"
@@ -52,7 +37,7 @@
             android:layout_width="0dp"
             android:layout_height="fill_parent"
             android:layout_weight="30"
-            android:text="Zoom In"
+            android:text="@string/LeftButton"
             android:id="@+id/B1"/>
         <Button
             style="android:attr/buttonBarStyle"
@@ -66,7 +51,7 @@
             android:layout_width="0dp"
             android:layout_height="fill_parent"
             android:layout_weight="30"
-            android:text="Zoom Out"
+            android:text="@string/RightButton"
             android:id="@+id/B2"/>
     </LinearLayout>
 </LinearLayout>

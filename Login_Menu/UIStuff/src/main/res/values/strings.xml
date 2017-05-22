@@ -3,5 +3,7 @@
     <string name="Password">Password</string>
     <string name="Register">Register</string>
     <string name="Login">Login as Player</string>
+    <string name="LeftButton">Zoom In</string>
+    <string name="RightButton">Zoom Out</string>
     <string name="MidButton">Create</string>
 </resources>

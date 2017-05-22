@@ -1,13 +1,9 @@
 package com.example.bakes.login_menu;
 
-import android.content.Context;
 import android.content.Intent;
-import android.content.res.Resources;
 import android.graphics.drawable.BitmapDrawable;
-import android.media.Image;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.InputType;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -32,7 +28,7 @@ public class UIAdmin extends AppCompatActivity {
     //size of the map tiles
     int tileSize = 100;
     //popup window
-    PopupWindow popup;
+    PopupWindow terrainPopup;
     //current tile to be changed
     int changing = -1;
     //enter size popup window
@@ -48,16 +44,15 @@ public class UIAdmin extends AppCompatActivity {
     final int mountain = 4;
     final int town = 5;
     final int pond = 6;
+    final int NUM_TER_KINDS = 6;
     final int OFFSET = 10000;
-//TODO: make layout for the grid sepections after size entered.
     private final View.OnClickListener sizeEnter = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
             //get the EditText result from the map_maker_size_popup layout
             EditText sizeEdit = (EditText) sizePopup.getContentView().findViewById(R.id.sizePopupEdit);
             //only do stuff if something is actually entered.
-            //TODO just ran it and it crashed when nothing was entered. gotta fix that.
-            if (sizeEdit.getText().toString() != "") {
+            if(!sizeEdit.getText().toString().equals("")) {
                 int sizeEntered = Integer.parseInt(sizeEdit.getText().toString());
 
                 if (sizeEntered >= 100) {
@@ -70,6 +65,9 @@ public class UIAdmin extends AppCompatActivity {
                 mapSize = sizeEntered * sizeEntered;
                 sizePopup.dismiss();
                 initialize();
+            }
+            else{
+                Toast.makeText(getApplicationContext(), "Enter a size or press back to cancel.", Toast.LENGTH_SHORT).show();
             }
         }
     };
@@ -87,11 +85,25 @@ public class UIAdmin extends AppCompatActivity {
                 //inflate and display the popup
                 LayoutInflater inflater1 = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
                 View layout = inflater1.inflate(R.layout.map_maker_size_popup, (ViewGroup)findViewById(R.id.sizePopup));
+                /**
+                 * It's my understanding that an AlertDialog would be better for modal popups,
+                 * but it wasn't wanting to play nicely with the layout.
+                 * I wanted the back button to still work, but the way to do that was to allow touches
+                 * outside the popup and then I had to throw away random clicks.
+                 */
+                layout.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        //throw away clicks outside the popup
+                    }
+                });
+                //was unable to move these into the xml file, but it still feels cleaner than it was before.
                 sizePopup = new PopupWindow(layout,300,370,true);
                 sizePopup.setBackgroundDrawable(new BitmapDrawable());
+                sizePopup.setOutsideTouchable(true);
                 sizePopup.showAtLocation(layout,Gravity.TOP,0,500);
 
-                //set button to close the size popup
+                //set button which closes the size popup
                 Button close = (Button)layout.findViewById(R.id.sizePopupEnter);
                 close.setOnClickListener(sizeEnter);
             }
@@ -102,18 +114,14 @@ public class UIAdmin extends AppCompatActivity {
         //initialize admin
         sender = new Admin(this.getApplicationContext(), mapSize);
 
-        //initialize types
-
         //change end turn button to send button
-        Button endTurn = (Button) findViewById(R.id.B3);
-        endTurn.setText("Send");
-
+        Button b = (Button) findViewById(R.id.B3);
+        b.setText("Send");
+        b.setOnClickListener(onClickListener);
         //add buttons to onClickListener(zoom in and zoom out)
-        Button b = (Button)findViewById(R.id.B1);
+        b = (Button)findViewById(R.id.B1);
         b.setOnClickListener(onClickListener);
         b = (Button)findViewById(R.id.B2);
-        b.setOnClickListener(onClickListener);
-        b = (Button)findViewById(R.id.B3);
         b.setOnClickListener(onClickListener);
 
         //Create table of any size(must be square)
@@ -123,7 +131,6 @@ public class UIAdmin extends AppCompatActivity {
 
         //Getting the terrain and army grid from the xml
         TableLayout layoutT = (TableLayout) findViewById(R.id.inLayout);
-        TableLayout layoutA = (TableLayout) findViewById(R.id.outLayout);
 
         //Adds current row to their respective grid (Army is created stacked over terrain)
         layoutT.addView(rowTerrain);
@@ -155,13 +162,16 @@ public class UIAdmin extends AppCompatActivity {
         initPopup();
     }
 
+    //I'm actually ok with leaving this as it is. It's not very big, and allows for more terrain to
+    //be added more easily than if I were to make a layout for the popup (having to add more code to
+    //for each new terrain added
     private void initPopup(){
         LinearLayout popLayout;
         ImageView image;
-        popup = new PopupWindow(this);
+        terrainPopup = new PopupWindow(this);
         popLayout = new LinearLayout(this);
         //I start at 1, because 'p0' is a blank tile, which we don't want the admin to place on the map
-        for(int i = 1; i <= 6; i++){
+        for(int i = 1; i <= NUM_TER_KINDS; i++){
             image = new ImageView(this);
             //I didn't know how to get the identifier when cleaning things up.
             //Found it below in loadTerrain, in a line from an old group member.
@@ -173,12 +183,12 @@ public class UIAdmin extends AppCompatActivity {
             image.setOnClickListener(onClickListener);
             popLayout.addView(image, new LinearLayout.LayoutParams(100,100));
         }
-        popup.setContentView(popLayout);
-        popup.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
-        popup.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
+        terrainPopup.setContentView(popLayout);
+        terrainPopup.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
+        terrainPopup.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
     }
 
-    //processes clicks
+    //processes clicks (after size is selected)
     View.OnClickListener onClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -239,12 +249,12 @@ public class UIAdmin extends AppCompatActivity {
                     toChange.setImageResource(resId);
                     sender.addTile(terrainName, changing);
                 }
-                popup.dismiss();
+                terrainPopup.dismiss();
                 changing = -1;
             }
             else{
                 ScrollView scroll = (ScrollView) findViewById(R.id.scroll);
-                popup.showAtLocation(scroll, Gravity.TOP, 0, 500);
+                terrainPopup.showAtLocation(scroll, Gravity.TOP, 0, 500);
                 changing = v.getId();
             }
         }
@@ -255,6 +265,8 @@ public class UIAdmin extends AppCompatActivity {
             sizePopup.dismiss();
             sizePopup = null;
         }
+        else if(terrainPopup != null && terrainPopup.isShowing())
+            terrainPopup.dismiss();
         else {
             Intent menuIntent = new Intent(getApplicationContext(), com.example.bakes.login_menu.Menu.class);
             menuIntent.putExtra("username", getIntent().getStringExtra("username"));
