@@ -1,7 +1,9 @@
 package com.example.bakes.login_menu;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
+import android.graphics.drawable.BitmapDrawable;
 import android.media.Image;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -47,7 +49,7 @@ public class UIAdmin extends AppCompatActivity {
     final int town = 5;
     final int pond = 6;
     final int OFFSET = 10000;
-
+//TODO: make layout for the grid sepections after size entered.
     private final View.OnClickListener sizeEnter = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -86,8 +88,7 @@ public class UIAdmin extends AppCompatActivity {
                 LayoutInflater inflater1 = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
                 View layout = inflater1.inflate(R.layout.map_maker_size_popup, (ViewGroup)findViewById(R.id.sizePopup));
                 sizePopup = new PopupWindow(layout,300,370,true);
-                //TODO still won't read the back button when pressed
-                sizePopup.setOutsideTouchable(true);
+                sizePopup.setBackgroundDrawable(new BitmapDrawable());
                 sizePopup.showAtLocation(layout,Gravity.TOP,0,500);
 
                 //set button to close the size popup
@@ -250,9 +251,9 @@ public class UIAdmin extends AppCompatActivity {
     };
     @Override
     public void onBackPressed(){
-        if(popup != null){
-            popup.dismiss();
-            popup = null;
+        if(sizePopup != null && sizePopup.isShowing()){
+            sizePopup.dismiss();
+            sizePopup = null;
         }
         else {
             Intent menuIntent = new Intent(getApplicationContext(), com.example.bakes.login_menu.Menu.class);
