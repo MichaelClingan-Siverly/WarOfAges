@@ -1,18 +1,13 @@
 package com.example.bakes.login_menu;
 
-import android.app.Dialog;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.drawable.BitmapDrawable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.InputType;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -21,7 +16,6 @@ import android.widget.PopupWindow;
 import android.widget.ScrollView;
 import android.widget.TableLayout;
 import android.widget.TableRow;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import warofages.mapmaker.Admin;
@@ -54,38 +48,40 @@ public class UIAdmin extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.map_maker);
-        sender = new Admin(this.getApplicationContext());
 
         //on click listener for create button
-        Button b = (Button)findViewById(R.id.B3);
+        Button b = (Button)findViewById(R.id.confirm);
         b.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                /**
-                 * Ok, so this doesn't seem worth it. Not only did I make the xml, all this stuff
-                 * that I couldn't seem to put in the xml, but I also think the old popup looked better
-                 *
-                 * Oh well, it was good practice. (Hooray for Google!)
-                 */
-                //inflate the layout
-                LayoutInflater inflater1 = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
-                View layout = inflater1.inflate(R.layout.map_maker_size_popup, (ViewGroup)findViewById(R.id.sizePopup));
-
-                //create the dialog and add the inflated layout to it
-                AlertDialog.Builder builder = new AlertDialog.Builder(UIAdmin.this);
-                AlertDialog dialog = builder.create();
-                dialog.setView(layout);
-                dialog.setCanceledOnTouchOutside(false);
-                dialog.show();
-
-                //I also save the dialog because I need to get the text from it
-                sizeDialog = dialog;
-
+                buildSizeDialog();
                 //set button which closes the size popup
-                Button close = (Button)layout.findViewById(R.id.sizePopupEnter);
-                close.setOnClickListener(sizeEnter);
+                Button close = (Button)sizeDialog.findViewById(R.id.sizePopupEnter);
+                if(close != null)
+                    close.setOnClickListener(sizeEnter);
             }
         });
+    }
+    private void buildSizeDialog(){
+        /*
+         * Ok, so this doesn't seem worth it. Not only did I make the xml, all this stuff
+         * that I couldn't seem to put in the xml, but I also think the old popup looked better
+         *
+         * Oh well, it was good practice. (Hooray for Google!)
+         */
+        //inflate the layout
+        LayoutInflater inflater1 = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+        View layout = inflater1.inflate(R.layout.map_maker_size_popup, (ViewGroup)findViewById(R.id.sizePopup));
+
+        //create the dialog and add the inflated layout to it
+        AlertDialog.Builder builder = new AlertDialog.Builder(UIAdmin.this);
+        AlertDialog dialog = builder.create();
+        dialog.setView(layout);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.show();
+
+        //I also save the dialog because I need to get the text from it
+        sizeDialog = dialog;
     }
 
     private final View.OnClickListener sizeEnter = new View.OnClickListener() {
@@ -95,55 +91,62 @@ public class UIAdmin extends AppCompatActivity {
             EditText sizeEdit = (EditText)sizeDialog.findViewById(R.id.sizePopupEdit);
 
             //only do stuff if something is actually entered.
-            if(!sizeEdit.getText().toString().equals("")) {
-                int sizeEntered = Integer.parseInt(sizeEdit.getText().toString());
-                mapSize = sender.initMap(sizeEntered);
+            if(sizeEdit != null && !sizeEdit.getText().toString().equals("")) {
                 sizeDialog.dismiss();
                 sizeDialog = null;
-                initialize();
+                //can initialize Admin with the size entered by user
+                int sizeEntered = Integer.parseInt(sizeEdit.getText().toString());
+                proceedAfterSizeEntered(sizeEntered);
+
             }
             //user pressed enter without providing input (don't dismiss the popup in this case)
             else{
-                Toast.makeText(getApplicationContext(), "Enter a size or press back to cancel.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Enter a side length or press back to cancel.", Toast.LENGTH_SHORT).show();
             }
         }
     };
 
-    public void initialize(){
-        //initialize admin
-//        sender = new Admin(this.getApplicationContext(), mapSize);
-
-        //change end turn button to send button
-        Button b = (Button) findViewById(R.id.B3);
+    private void proceedAfterSizeEntered(int chosenMapSize){
+        sender = new Admin(getApplicationContext(), chosenMapSize);
+        //mapSize may not be what was entered, as there is a min and max size we allow.
+        mapSize = sender.getMapSize();
+        if(mapSize < chosenMapSize*chosenMapSize)
+            Toast.makeText(getApplicationContext(), "Map too large. Reduced to 99.", Toast.LENGTH_SHORT).show();
+        else if(mapSize > chosenMapSize*chosenMapSize)
+            Toast.makeText(getApplicationContext(), "Map too small. Increased to 2.", Toast.LENGTH_SHORT).show();
+        initMap();
+        initTerrainPopup();
+    }
+    //Create square table of any size within the limits which are already enforced
+    public void initMap(){
+        //change create button to send button
+        Button b = (Button) findViewById(R.id.confirm);
         b.setText("Send");
-        b.setOnClickListener(onClickListener);
+        b.setOnClickListener(editMapClicks);
         //add buttons to onClickListener(zoom in and zoom out)
-        b = (Button)findViewById(R.id.B1);
-        b.setOnClickListener(onClickListener);
-        b = (Button)findViewById(R.id.B2);
-        b.setOnClickListener(onClickListener);
-
-        //Create table of any size(must be square)
+        b = (Button)findViewById(R.id.zoomIn);
+        b.setOnClickListener(editMapClicks);
+        b = (Button)findViewById(R.id.zoomOut);
+        b.setOnClickListener(editMapClicks);
 
         //Creates an initial row
         TableRow rowTerrain = new TableRow(this);
 
         //Getting the terrain and army grid from the xml
-        TableLayout layoutT = (TableLayout) findViewById(R.id.inLayout);
+        TableLayout mapLayout = (TableLayout) findViewById(R.id.mapLayout);
 
         //Adds current row to their respective grid (Army is created stacked over terrain)
-        layoutT.addView(rowTerrain);
+        mapLayout.addView(rowTerrain);
 
-        int rowlength = 0;
         TableRow.LayoutParams params = new TableRow.LayoutParams(tileSize,tileSize);
-        for(int id = 0;id < mapSize;id++){
+        for(int id = 0, rowLength = 0; id < mapSize; id++, rowLength++){
             //if row is filled
-            if(rowlength == Math.sqrt(mapSize)){
+            if(rowLength == Math.sqrt(mapSize)){
                 //Creates a new row for both grids
                 rowTerrain = new TableRow(this);
                 //Adds row to grids
-                layoutT.addView(rowTerrain);
-                rowlength = 0;
+                mapLayout.addView(rowTerrain);
+                rowLength = 0;
             }
 
             //creates image and adds it to terrain
@@ -153,18 +156,14 @@ public class UIAdmin extends AppCompatActivity {
             //he had a separate method just for this, which is odd since it always adds the same image
             image.setImageResource(R.drawable.p0);
             image.setLayoutParams(params);
-            image.setOnClickListener(onClickListener);
-            rowlength++;
-
+            image.setOnClickListener(editMapClicks);
         }
-        //initialize popup window
-        initPopup();
     }
 
     //I'm actually ok with leaving this as it is. It's not very big, and allows for more terrain to
     //be added more easily than if I were to make a layout for the popup (having to add more code to
     //for each new terrain added
-    private void initPopup(){
+    private void initTerrainPopup(){
         LinearLayout popLayout;
         ImageView image;
         terrainPopup = new PopupWindow(this);
@@ -178,7 +177,7 @@ public class UIAdmin extends AppCompatActivity {
             image.setImageResource(resID);
             //added 10000, because I know it'll be larger than any id generated as part of the map
             image.setId(i + OFFSET);
-            image.setOnClickListener(onClickListener);
+            image.setOnClickListener(editMapClicks);
             popLayout.addView(image, new LinearLayout.LayoutParams(100,100));
         }
         terrainPopup.setContentView(popLayout);
@@ -187,12 +186,12 @@ public class UIAdmin extends AppCompatActivity {
     }
 
     //processes clicks (after size is selected)
-    View.OnClickListener onClickListener = new View.OnClickListener() {
+    View.OnClickListener editMapClicks = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            //increases/decreases size of map when clicked button is increase size button
-            if(R.id.B1 == v.getId() || R.id.B2 == v.getId()) {
-                if(v.getId() == R.id.B1)
+            //zoom button clicked, so everything in grid needs resized
+            if(R.id.zoomIn == v.getId() || R.id.zoomOut == v.getId()) {
+                if(v.getId() == R.id.zoomIn)
                     tileSize += 100;
                 else if(tileSize > 100)
                     tileSize -= 100;
@@ -208,14 +207,22 @@ public class UIAdmin extends AppCompatActivity {
                     image.setLayoutParams(parms);
                 }
             }
-            else if(R.id.B3 == v.getId()){
+            //send button clicked
+            else if(R.id.confirm == v.getId()){
                 sender.sendMap();
             }
-            else if(changing != -1) {
+            //map grid is clicked: find the ID of the tile to be changed
+            else if(changing == -1){
+                ScrollView scroll = (ScrollView) findViewById(R.id.scroll);
+                terrainPopup.showAtLocation(scroll, Gravity.TOP, 0, 500);
+                changing = v.getId();
+            }
+            else{
                 int resId = 0;
                 String terrainName = "";
                 //subtracted 10000 because I ended up adding it when creating the popup id's
                 int id = v.getId() - OFFSET;
+                //finds which image was selected in the terrain popup
                 switch(id){
                     case desert:
                         resId = R.drawable.p1;
@@ -249,11 +256,6 @@ public class UIAdmin extends AppCompatActivity {
                 }
                 terrainPopup.dismiss();
                 changing = -1;
-            }
-            else{
-                ScrollView scroll = (ScrollView) findViewById(R.id.scroll);
-                terrainPopup.showAtLocation(scroll, Gravity.TOP, 0, 500);
-                changing = v.getId();
             }
         }
     };

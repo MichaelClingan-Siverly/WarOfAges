@@ -23,11 +23,11 @@ public class Admin extends AppCompatActivity{
     private String[] terrainMap;
     private int mapSize;
     private Context context;
-    public Admin(Context context){
-        terrainMap = new String[mapSize];
+    public Admin(Context context, int rootOfMapSize){
         this.context=context;
+        initMap(rootOfMapSize);
     }
-    public int initMap(int rootOfMapSize){
+    public void initMap(int rootOfMapSize){
         String s = "Map of size "+rootOfMapSize+" created.";
         if(rootOfMapSize < 2) {
             rootOfMapSize = 2;
@@ -38,10 +38,14 @@ public class Admin extends AppCompatActivity{
             s = "Too large. Map size reduced to 99.";
         }
         mapSize = rootOfMapSize * rootOfMapSize;
+        terrainMap = new String[mapSize];
+    }
+    public int getMapSize(){
         return mapSize;
     }
 
     public void addTile(String terrain, int mapID){
+        //length of array is constant, but I only want to sell a full array
         if(terrainMap[mapID] == null)
             countLength++;
             //maps must contain at least two towns. I check here so I won't have to check in linear time on sendMap
@@ -51,6 +55,7 @@ public class Admin extends AppCompatActivity{
             townCount++;
         terrainMap[mapID] = terrain;
     }
+
     public void sendMap(){
         if(countLength < mapSize){
             Toast.makeText(context, "Map is not complete.", Toast.LENGTH_SHORT).show();
