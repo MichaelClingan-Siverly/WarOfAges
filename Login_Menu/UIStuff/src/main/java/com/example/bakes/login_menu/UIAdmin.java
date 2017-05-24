@@ -1,13 +1,18 @@
 package com.example.bakes.login_menu;
 
+import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.drawable.BitmapDrawable;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -22,6 +27,15 @@ import android.widget.Toast;
 import warofages.mapmaker.Admin;
 
 public class UIAdmin extends AppCompatActivity {
+    final int desert = 1;
+    final int forest = 2;
+    final int meadow = 3;
+    final int mountain = 4;
+    final int town = 5;
+    final int pond = 6;
+    final int NUM_TER_KINDS = 6;
+    final int OFFSET = 10000;
+
     boolean movedToOtherIntent = false;
     //The number of squares in the map. Needs clean squareroot
     int mapSize = 100;
@@ -33,49 +47,14 @@ public class UIAdmin extends AppCompatActivity {
     int changing = -1;
     //enter size popup window
     PopupWindow sizePopup;
-    //size text box
-    EditText sizeBox;
     //Admin object for server connection
     Admin sender;
-    //array of map terrain types
-    final int desert = 1;
-    final int forest = 2;
-    final int meadow = 3;
-    final int mountain = 4;
-    final int town = 5;
-    final int pond = 6;
-    final int NUM_TER_KINDS = 6;
-    final int OFFSET = 10000;
-    private final View.OnClickListener sizeEnter = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            //get the EditText result from the map_maker_size_popup layout
-            EditText sizeEdit = (EditText) sizePopup.getContentView().findViewById(R.id.sizePopupEdit);
-            //only do stuff if something is actually entered.
-            if(!sizeEdit.getText().toString().equals("")) {
-                int sizeEntered = Integer.parseInt(sizeEdit.getText().toString());
-
-                if (sizeEntered >= 100) {
-                    Toast.makeText(getApplicationContext(), "Too large. Map size reduced to 99.", Toast.LENGTH_SHORT).show();
-                    sizeEntered = 99;
-                } else if (sizeEntered < 2) {
-                    Toast.makeText(getApplicationContext(), "Too small. Map size increased to 2.", Toast.LENGTH_SHORT).show();
-                    sizeEntered = 2;
-                }
-                mapSize = sizeEntered * sizeEntered;
-                sizePopup.dismiss();
-                initialize();
-            }
-            else{
-                Toast.makeText(getApplicationContext(), "Enter a size or press back to cancel.", Toast.LENGTH_SHORT).show();
-            }
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.map_maker);
+        sender = new Admin(this.getApplicationContext());
 
         //on click listener for create button
         Button b = (Button)findViewById(R.id.B3);
@@ -85,34 +64,65 @@ public class UIAdmin extends AppCompatActivity {
                 //inflate and display the popup
                 LayoutInflater inflater1 = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
                 View layout = inflater1.inflate(R.layout.map_maker_size_popup, (ViewGroup)findViewById(R.id.sizePopup));
-                /**
-                 * It's my understanding that an AlertDialog would be better for modal popups,
-                 * but it wasn't wanting to play nicely with the layout.
-                 * I wanted the back button to still work, but the way to do that was to allow touches
-                 * outside the popup and then I had to throw away random clicks.
-                 */
-                layout.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        //throw away clicks outside the popup
-                    }
-                });
                 //was unable to move these into the xml file, but it still feels cleaner than it was before.
-                sizePopup = new PopupWindow(layout,300,370,true);
-                sizePopup.setBackgroundDrawable(new BitmapDrawable());
-                sizePopup.setOutsideTouchable(true);
-                sizePopup.showAtLocation(layout,Gravity.TOP,0,500);
+//                sizePopup = new PopupWindow(layout,300,370,true);
+//                sizePopup.setBackgroundDrawable(new BitmapDrawable());
+//                sizePopup.setOutsideTouchable(true);
+//                sizePopup.showAtLocation(layout,Gravity.TOP,0,500);
+
+                final EditText editText = new EditText(UIAdmin.this);
+                editText.setInputType(InputType.TYPE_CLASS_NUMBER);
+                AlertDialog.Builder builder = new AlertDialog.Builder(UIAdmin.this);
+
+//                builder.setView(layout);
+                AlertDialog dialog = builder.create();
+//                dialog.getWindow().setLayout(layout.getWidth(), layout.getHeight());
+                ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+//                dialog.setContentView(layout, params);
+                dialog.setContentView(layout);
+                dialog.show();
 
                 //set button which closes the size popup
-                Button close = (Button)layout.findViewById(R.id.sizePopupEnter);
-                close.setOnClickListener(sizeEnter);
+//                Button close = (Button)layout.findViewById(R.id.sizePopupEnter);
+//                close.setOnClickListener(sizeEnter);
             }
         });
     }
 
+    private final View.OnClickListener sizeEnter = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            //get the EditText result from the map_maker_size_popup layout
+            EditText sizeEdit = (EditText) sizePopup.getContentView().findViewById(R.id.sizePopupEdit);
+
+            //only do stuff if something is actually entered.
+            if(!sizeEdit.getText().toString().equals("")) {
+                int sizeEntered = Integer.parseInt(sizeEdit.getText().toString());
+                mapSize = sender.initMap(sizeEntered);
+                switch(mapSize){
+                    case 2:
+                        Toast.makeText(getApplicationContext(), "Too small. Map size increased to 2.", Toast.LENGTH_SHORT).show();
+                        break;
+                    case 99:
+                        Toast.makeText(getApplicationContext(), "Too large. Map size reduced to 99.", Toast.LENGTH_SHORT).show();
+                        break;
+                    //user gets no toast otherwise
+                }
+                sizePopup.dismiss();
+                View root = getWindow().getDecorView().getRootView();
+                root.setClickable(true);
+                initialize();
+            }
+            //user pressed enter without providing input (don't dismiss the popup in this case)
+            else{
+                Toast.makeText(getApplicationContext(), "Enter a size or press back to cancel.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    };
+
     public void initialize(){
         //initialize admin
-        sender = new Admin(this.getApplicationContext(), mapSize);
+//        sender = new Admin(this.getApplicationContext(), mapSize);
 
         //change end turn button to send button
         Button b = (Button) findViewById(R.id.B3);

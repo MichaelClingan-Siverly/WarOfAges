@@ -21,15 +21,26 @@ public class Admin extends AppCompatActivity{
     private int countLength=0;
     private int townCount = 0;
     private String[] terrainMap;
-    //    private ArrayList<String> Terrain= new ArrayList<>();
-//    private ArrayList<String> MapID= new ArrayList<>();
     private int mapSize;
     private Context context;
-    public Admin(Context context, int mapSize){
-        this.mapSize=mapSize;
+    public Admin(Context context){
         terrainMap = new String[mapSize];
         this.context=context;
     }
+    public int initMap(int rootOfMapSize){
+        String s = "Map of size "+rootOfMapSize+" created.";
+        if(rootOfMapSize < 2) {
+            rootOfMapSize = 2;
+            s = "Too small. Map size increased to 2.";
+        }
+        else if(rootOfMapSize > 99){
+            rootOfMapSize = 99;
+            s = "Too large. Map size reduced to 99.";
+        }
+        mapSize = rootOfMapSize * rootOfMapSize;
+        return rootOfMapSize;
+    }
+
     public void addTile(String terrain, int mapID){
         if(terrainMap[mapID] == null)
             countLength++;
