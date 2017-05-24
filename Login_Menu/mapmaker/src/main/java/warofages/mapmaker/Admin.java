@@ -38,7 +38,7 @@ public class Admin extends AppCompatActivity{
             s = "Too large. Map size reduced to 99.";
         }
         mapSize = rootOfMapSize * rootOfMapSize;
-        return rootOfMapSize;
+        return mapSize;
     }
 
     public void addTile(String terrain, int mapID){

@@ -38,15 +38,15 @@ public class UIAdmin extends AppCompatActivity {
 
     boolean movedToOtherIntent = false;
     //The number of squares in the map. Needs clean squareroot
-    int mapSize = 100;
+    int mapSize;
     //size of the map tiles
     int tileSize = 100;
     //popup window
     PopupWindow terrainPopup;
-    //current tile to be changed
+    //location of current tile to be changed. Since map IDs are >= 0, neg #'s mean no tile changing
     int changing = -1;
     //enter size popup window
-    PopupWindow sizePopup;
+    AlertDialog sizeDialog;
     //Admin object for server connection
     Admin sender;
 
@@ -61,30 +61,29 @@ public class UIAdmin extends AppCompatActivity {
         b.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //inflate and display the popup
+                /**
+                 * Ok, so this doesn't seem worth it. Not only did I make the xml, all this stuff
+                 * that I couldn't seem to put in the xml, but I also think the old popup looked better
+                 *
+                 * Oh well, it was good practice. (Hooray for Google!)
+                 */
+                //inflate the layout
                 LayoutInflater inflater1 = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
                 View layout = inflater1.inflate(R.layout.map_maker_size_popup, (ViewGroup)findViewById(R.id.sizePopup));
-                //was unable to move these into the xml file, but it still feels cleaner than it was before.
-//                sizePopup = new PopupWindow(layout,300,370,true);
-//                sizePopup.setBackgroundDrawable(new BitmapDrawable());
-//                sizePopup.setOutsideTouchable(true);
-//                sizePopup.showAtLocation(layout,Gravity.TOP,0,500);
 
-                final EditText editText = new EditText(UIAdmin.this);
-                editText.setInputType(InputType.TYPE_CLASS_NUMBER);
+                //create the dialog and add the inflated layout to it
                 AlertDialog.Builder builder = new AlertDialog.Builder(UIAdmin.this);
-
-//                builder.setView(layout);
                 AlertDialog dialog = builder.create();
-//                dialog.getWindow().setLayout(layout.getWidth(), layout.getHeight());
-                ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-//                dialog.setContentView(layout, params);
-                dialog.setContentView(layout);
+                dialog.setView(layout);
+                dialog.setCanceledOnTouchOutside(false);
                 dialog.show();
 
+                //I also save the dialog because I need to get the text from it
+                sizeDialog = dialog;
+
                 //set button which closes the size popup
-//                Button close = (Button)layout.findViewById(R.id.sizePopupEnter);
-//                close.setOnClickListener(sizeEnter);
+                Button close = (Button)layout.findViewById(R.id.sizePopupEnter);
+                close.setOnClickListener(sizeEnter);
             }
         });
     }
@@ -92,25 +91,15 @@ public class UIAdmin extends AppCompatActivity {
     private final View.OnClickListener sizeEnter = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            //get the EditText result from the map_maker_size_popup layout
-            EditText sizeEdit = (EditText) sizePopup.getContentView().findViewById(R.id.sizePopupEdit);
+            //get the EditText result from dialog
+            EditText sizeEdit = (EditText)sizeDialog.findViewById(R.id.sizePopupEdit);
 
             //only do stuff if something is actually entered.
             if(!sizeEdit.getText().toString().equals("")) {
                 int sizeEntered = Integer.parseInt(sizeEdit.getText().toString());
                 mapSize = sender.initMap(sizeEntered);
-                switch(mapSize){
-                    case 2:
-                        Toast.makeText(getApplicationContext(), "Too small. Map size increased to 2.", Toast.LENGTH_SHORT).show();
-                        break;
-                    case 99:
-                        Toast.makeText(getApplicationContext(), "Too large. Map size reduced to 99.", Toast.LENGTH_SHORT).show();
-                        break;
-                    //user gets no toast otherwise
-                }
-                sizePopup.dismiss();
-                View root = getWindow().getDecorView().getRootView();
-                root.setClickable(true);
+                sizeDialog.dismiss();
+                sizeDialog = null;
                 initialize();
             }
             //user pressed enter without providing input (don't dismiss the popup in this case)
@@ -188,7 +177,6 @@ public class UIAdmin extends AppCompatActivity {
             int resID = getResources().getIdentifier("p"+i,"drawable", getPackageName());
             image.setImageResource(resID);
             //added 10000, because I know it'll be larger than any id generated as part of the map
-            //and sizeBox is at id 10000
             image.setId(i + OFFSET);
             image.setOnClickListener(onClickListener);
             popLayout.addView(image, new LinearLayout.LayoutParams(100,100));
@@ -271,11 +259,7 @@ public class UIAdmin extends AppCompatActivity {
     };
     @Override
     public void onBackPressed(){
-        if(sizePopup != null && sizePopup.isShowing()){
-            sizePopup.dismiss();
-            sizePopup = null;
-        }
-        else if(terrainPopup != null && terrainPopup.isShowing())
+        if(terrainPopup != null && terrainPopup.isShowing())
             terrainPopup.dismiss();
         else {
             Intent menuIntent = new Intent(getApplicationContext(), com.example.bakes.login_menu.Menu.class);

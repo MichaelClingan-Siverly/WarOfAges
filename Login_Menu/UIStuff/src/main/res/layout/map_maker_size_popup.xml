@@ -4,16 +4,18 @@
     android:layout_height="wrap_content"
     android:background="@android:color/transparent">
     <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:orientation="vertical"
-        android:background="@drawable/size_popup_border"
+        android:background="@android:color/darker_gray"
         android:alpha="102"
         android:id="@+id/sizePopup">
         <TextView
-            android:layout_width="wrap_content"
+            android:textSize="20dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="enter map size"
+            android:gravity="center"
             android:textColor="#000000"/>
         <EditText
             android:id="@+id/sizePopupEdit"
@@ -23,8 +25,9 @@
             android:gravity="center"
             android:hint="ex: 10" />
         <Button
+            android:gravity="center"
             android:id="@+id/sizePopupEnter"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
 
             android:text="enter"/>
