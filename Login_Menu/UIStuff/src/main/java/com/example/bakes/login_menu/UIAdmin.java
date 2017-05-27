@@ -13,6 +13,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
+import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -129,33 +130,50 @@ public class UIAdmin extends AppCompatActivity {
         b = (Button)findViewById(R.id.zoomOut);
         b.setOnClickListener(editMapClicks);
 
-        //Creates an initial row
-        TableRow rowTerrain = new TableRow(this);
+        //Getting the outer layout from the xml
+        LinearLayout mapLayout = (LinearLayout) findViewById(R.id.mapLayout);
 
-        //Getting the terrain and army grid from the xml
-        TableLayout mapLayout = (TableLayout) findViewById(R.id.mapLayout);
+        //Creates an initial column
+        LinearLayout column = new LinearLayout(this);
+        column.setOrientation(LinearLayout.VERTICAL);
 
-        //Adds current row to their respective grid (Army is created stacked over terrain)
-        mapLayout.addView(rowTerrain);
+        //Adds current column to proper index
+        mapLayout.addView(column);
+        LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(tileSize,tileSize);
 
-        TableRow.LayoutParams params = new TableRow.LayoutParams(tileSize,tileSize);
+        int leftMargin=0, topMargin = 0;
         for(int id = 0, rowLength = 0; id < mapSize; id++, rowLength++){
-            //if row is filled
+            //if column is filled, begin new column and set parameters for it
             if(rowLength == Math.sqrt(mapSize)){
                 //Creates a new row for both grids
-                rowTerrain = new TableRow(this);
+                column = new LinearLayout(this);
+                //each row after the first gets adjusted margins
+                leftMargin = -tileSize / 4;
+                //we move every second column down a bit
+                if((id / rowLength) % 2 == 1)
+                    topMargin = tileSize / 2;
+                else
+                    topMargin = 0;
+
+                //set the parameters for the columns
+                column.setOrientation(LinearLayout.VERTICAL);
+//                LinearLayout.LayoutParams columnParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                LinearLayout.LayoutParams columnParams = new LinearLayout.LayoutParams(tileSize, rowLength*tileSize + tileSize/2);
+                columnParams.setMargins(leftMargin,topMargin,0,-topMargin);
+                column.setLayoutParams(columnParams);
                 //Adds row to grids
-                mapLayout.addView(rowTerrain);
+                mapLayout.addView(column);
                 rowLength = 0;
             }
 
             //creates image and adds it to terrain
             ImageView image = new ImageView(this);
             image.setId(id);
-            rowTerrain.addView(image);
+
+            column.addView(image);
             //he had a separate method just for this, which is odd since it always adds the same image
-            image.setImageResource(R.drawable.p0);
-            image.setLayoutParams(params);
+            image.setImageResource(R.drawable.hexagon);
+            image.setLayoutParams(imageParams);
             image.setOnClickListener(editMapClicks);
         }
     }
