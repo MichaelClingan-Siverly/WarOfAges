@@ -96,6 +96,7 @@ public class HexagonMaskView extends android.support.v7.widget.AppCompatImageVie
 
     @Override
     public void onDraw(Canvas c) {
+        setScaleType(ScaleType.CENTER_CROP);
         c.drawPath(hexagonBorderPath, mBorderPaint);
         c.clipPath(hexagonPath);
         c.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);

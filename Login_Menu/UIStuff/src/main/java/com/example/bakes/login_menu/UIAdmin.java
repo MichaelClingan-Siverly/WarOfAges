@@ -133,15 +133,17 @@ public class UIAdmin extends AppCompatActivity {
         b.setOnClickListener(editMapClicks);
 
         //Getting the outer layout from the xml
-        LinearLayout mapLayout = (LinearLayout) findViewById(R.id.mapLayout);
+        LinearLayout mapLayout = (LinearLayout) findViewById(R.id.mapMakerLayout);
 
-        //Creates an initial column
+        //Creates an initial column and sets its params
         LinearLayout column = new LinearLayout(this);
         column.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams columnParams = new LinearLayout.LayoutParams(tileSize, (int)Math.sqrt(mapSize)*tileSize);
+        columnParams.setMargins(0,0,0,0);
 
         //Adds current column to proper index
         mapLayout.addView(column);
-        LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(tileSize,tileSize);
+
 
         int leftMargin=0, topMargin = 0;
         for(int id = 0, rowLength = 0; id < mapSize; id++, rowLength++){
@@ -153,14 +155,14 @@ public class UIAdmin extends AppCompatActivity {
                 leftMargin = -tileSize / 4;
                 //we move every second column down a bit
                 if((id / rowLength) % 2 == 1)
-                    topMargin = tileSize / 2;
+                    topMargin = (int)(Math.sqrt(3.0)/2 * tileSize / 2);
                 else
                     topMargin = 0;
 
                 //set the parameters for the columns
                 column.setOrientation(LinearLayout.VERTICAL);
-                //If I don't set the height this way, it will cut out part of the last hexagon in the column
-                LinearLayout.LayoutParams columnParams = new LinearLayout.LayoutParams(tileSize, rowLength*tileSize + tileSize/2);
+                //I set every second column to be a bit longer because they are shifted lower
+                columnParams = new LinearLayout.LayoutParams(tileSize, rowLength * tileSize + tileSize/2);
                 columnParams.setMargins(leftMargin,topMargin,0,-topMargin);
                 column.setLayoutParams(columnParams);
                 //Adds row to grids
@@ -168,16 +170,16 @@ public class UIAdmin extends AppCompatActivity {
                 rowLength = 0;
             }
 
-            //creates image and adds it to terrain
+            //creates image and adds it to terrain. HexagonMaskView has default size of 100x100
             HexagonMaskView image = new HexagonMaskView(this);
             image.setId(id);
-
             column.addView(image);
 
             //he had a separate method just for this, which is odd since it always adds the same image
             image.setImageResource(R.drawable.p2);
             image.setOnClickListener(editMapClicks);
         }
+        column.getChildAt(1);
     }
 
     //I'm actually ok with leaving this as it is. It's not very big, and allows for more terrain to
@@ -211,20 +213,49 @@ public class UIAdmin extends AppCompatActivity {
         public void onClick(View v) {
             //zoom button clicked, so everything in grid needs resized
             if(R.id.zoomIn == v.getId() || R.id.zoomOut == v.getId()) {
-                if(v.getId() == R.id.zoomIn)
+                boolean changed = false;
+                if(v.getId() == R.id.zoomIn && tileSize < 500) {
                     tileSize += 100;
-                else if(tileSize > 100)
+                    changed = true;
+                }
+                else if(v.getId() == R.id.zoomOut && tileSize > 100) {
                     tileSize -= 100;
+                    changed = true;
+                }
+                if(changed){
+                    LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(tileSize, tileSize);
+                    //increases size of all map images
+                    for (int id = 0; id < mapSize; id++) {
+                        HexagonMaskView image = (HexagonMaskView) findViewById(id);
+                        //sets sizes to size variable increased by 100
+                        image.setLayoutParams(imageParams);
+                        //was able to remove the second image resize here, since THERE IS NO SECOND IMAGE LAYER
+                    }
 
-                //loops through entire map by getting their imageviews from the ids
-                for (int id = 0; id < mapSize; id++) {
-                    ImageView image = (ImageView) findViewById(id);
+                    LinearLayout rootLayout = (LinearLayout) findViewById(R.id.mapMakerLayout);
+                    LinearLayout column;
+                    //number of columns = number of rows, since I only make square maps, so I can use count as rowLength
+                    int count = rootLayout.getChildCount();
+                    int leftMargin=0, topMargin = 0;
 
-                    //sets sizes to size variable increased by 100
-                    TableRow.LayoutParams parms = new TableRow.LayoutParams(tileSize, tileSize);
-                    image.setLayoutParams(parms);
-                    image = (ImageView) findViewById(id + mapSize);
-                    image.setLayoutParams(parms);
+                    //set parameters for first column, to avoid unnecessary checks during the loop
+                    LinearLayout.LayoutParams columnParams = new LinearLayout.LayoutParams(tileSize, count*tileSize);
+                    columnParams.setMargins(leftMargin,topMargin,0,-topMargin);
+                    column = (LinearLayout)rootLayout.getChildAt(0);
+                            column.setLayoutParams(columnParams);
+
+                    //do params for every other column, including shifting them all left, and every other one down
+                    leftMargin = -tileSize/4;
+                    columnParams = new LinearLayout.LayoutParams(tileSize, count*tileSize + tileSize/2);
+                    for (int i = 1; i < count; i++) {
+                        if(i % 2 == 1)
+                            topMargin = (int)(Math.sqrt(3.0)/2 * tileSize / 2);
+                        else
+                            topMargin = 0;
+                        columnParams.setMargins(leftMargin,topMargin,0,-topMargin);
+                        column = (LinearLayout)rootLayout.getChildAt(i);
+                        column.setLayoutParams(columnParams);
+                    }
                 }
             }
             //send button clicked
