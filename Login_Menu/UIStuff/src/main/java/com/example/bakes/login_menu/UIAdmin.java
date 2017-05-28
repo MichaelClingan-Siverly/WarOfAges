@@ -1,9 +1,11 @@
 package com.example.bakes.login_menu;
 
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.content.res.AppCompatResources;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -157,7 +159,7 @@ public class UIAdmin extends AppCompatActivity {
 
                 //set the parameters for the columns
                 column.setOrientation(LinearLayout.VERTICAL);
-//                LinearLayout.LayoutParams columnParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                //If I don't set the height this way, it will cut out part of the last hexagon in the column
                 LinearLayout.LayoutParams columnParams = new LinearLayout.LayoutParams(tileSize, rowLength*tileSize + tileSize/2);
                 columnParams.setMargins(leftMargin,topMargin,0,-topMargin);
                 column.setLayoutParams(columnParams);
@@ -167,13 +169,13 @@ public class UIAdmin extends AppCompatActivity {
             }
 
             //creates image and adds it to terrain
-            ImageView image = new ImageView(this);
+            HexagonMaskView image = new HexagonMaskView(this);
             image.setId(id);
 
             column.addView(image);
+
             //he had a separate method just for this, which is odd since it always adds the same image
-            image.setImageResource(R.drawable.hexagon);
-            image.setLayoutParams(imageParams);
+            image.setImageResource(R.drawable.p2);
             image.setOnClickListener(editMapClicks);
         }
     }

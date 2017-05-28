@@ -19,9 +19,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:id="@+id/mapLayout"
-                    android:clipChildren="false"
-                    android:clipToPadding="false">
+                    android:id="@+id/mapLayout">
                 </LinearLayout>
         </HorizontalScrollView>
     </ScrollView>
