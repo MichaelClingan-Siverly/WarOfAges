@@ -117,6 +117,8 @@ public class UIAdmin extends AppCompatActivity {
             Toast.makeText(getApplicationContext(), "Map too large. Reduced to 99.", Toast.LENGTH_SHORT).show();
         else if(mapSize > chosenMapSize*chosenMapSize)
             Toast.makeText(getApplicationContext(), "Map too small. Increased to 2.", Toast.LENGTH_SHORT).show();
+        if(mapSize > 70)
+            Toast.makeText(getApplicationContext(), "Maps this large may affect performance.", Toast.LENGTH_SHORT).show();
         initMap();
         initTerrainPopup();
     }
@@ -135,37 +137,24 @@ public class UIAdmin extends AppCompatActivity {
         //Getting the outer layout from the xml
         LinearLayout mapLayout = (LinearLayout) findViewById(R.id.mapMakerLayout);
 
-        //Creates an initial column and sets its params
+        //Creates an initial column
         LinearLayout column = new LinearLayout(this);
         column.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout.LayoutParams columnParams = new LinearLayout.LayoutParams(tileSize, (int)Math.sqrt(mapSize)*tileSize);
-        columnParams.setMargins(0,0,0,0);
-
-        //Adds current column to proper index
         mapLayout.addView(column);
 
-
-        int leftMargin=0, topMargin = 0;
+        //set images to all columns. create new columns as needed
         for(int id = 0, rowLength = 0; id < mapSize; id++, rowLength++){
             //if column is filled, begin new column and set parameters for it
             if(rowLength == Math.sqrt(mapSize)){
                 //Creates a new row for both grids
                 column = new LinearLayout(this);
-                //each row after the first gets adjusted margins
-                leftMargin = -tileSize / 4;
                 //we move every second column down a bit
                 if((id / rowLength) % 2 == 1)
-                    topMargin = (int)(Math.sqrt(3.0)/2 * tileSize / 2);
+                    adjustColumnParams(column, rowLength, false);
                 else
-                    topMargin = 0;
+                    adjustColumnParams(column, rowLength, true);
 
-                //set the parameters for the columns
-                column.setOrientation(LinearLayout.VERTICAL);
-                //I set every second column to be a bit longer because they are shifted lower
-                columnParams = new LinearLayout.LayoutParams(tileSize, rowLength * tileSize + tileSize/2);
-                columnParams.setMargins(leftMargin,topMargin,0,-topMargin);
-                column.setLayoutParams(columnParams);
-                //Adds row to grids
+                //Adds column to the matrix
                 mapLayout.addView(column);
                 rowLength = 0;
             }
@@ -176,10 +165,9 @@ public class UIAdmin extends AppCompatActivity {
             column.addView(image);
 
             //he had a separate method just for this, which is odd since it always adds the same image
-            image.setImageResource(R.drawable.p2);
+            image.setImageResource(R.drawable.p0);
             image.setOnClickListener(editMapClicks);
         }
-        column.getChildAt(1);
     }
 
     //I'm actually ok with leaving this as it is. It's not very big, and allows for more terrain to
@@ -207,56 +195,68 @@ public class UIAdmin extends AppCompatActivity {
         terrainPopup.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
     }
 
+    /* Should not be called on first column
+     * first column doesn't need special parameters besides being set to vertical.
+     * evenIndex: true if index 0,2,4... false if its odd
+     */
+    private void adjustColumnParams(LinearLayout column, int rowLength, boolean evenIndex){
+        //set orientation just in case it hasn't been done at creation
+        column.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams params;
+        if(evenIndex) {
+            params = new LinearLayout.LayoutParams(tileSize, rowLength * tileSize);
+            params.setMargins(-tileSize/4, 0,0,0);
+        }
+        else {
+            params = new LinearLayout.LayoutParams(tileSize, rowLength * tileSize + tileSize / 2);
+            params.setMargins(-tileSize/4, (int)(Math.sqrt(3.0)/2 * tileSize / 2), 0, -(int)(Math.sqrt(3.0)/2 * tileSize / 2));
+        }
+        column.setLayoutParams(params);
+    }
+
+    private void zoomClick(int vID){
+        boolean changed = false;
+        if(vID == R.id.zoomIn && tileSize < 500) {
+            tileSize += 100;
+            changed = true;
+        }
+        else if(vID == R.id.zoomOut && tileSize > 100) {
+            tileSize -= 100;
+            changed = true;
+        }
+        if(changed){
+            LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(tileSize, tileSize);
+            //increases size of all map images
+            for (int id = 0; id < mapSize; id++) {
+                HexagonMaskView image = (HexagonMaskView) findViewById(id);
+                //sets sizes to size variable increased by 100
+                image.setLayoutParams(imageParams);
+                //was able to remove the second image resize here, since THERE IS NO SECOND IMAGE LAYER
+            }
+
+            //loop through all columns after the first and adjust their parameters
+            LinearLayout rootLayout = (LinearLayout) findViewById(R.id.mapMakerLayout);
+            LinearLayout column;
+            //number of columns = number of rows, since I only make square maps, so I can use count as rowLength
+            int count = rootLayout.getChildCount();
+
+            for (int i = 1; i < count; i++) {
+                column = (LinearLayout)rootLayout.getChildAt(i);
+                if(i % 2 == 1)
+                    adjustColumnParams(column, count, false);
+                else
+                    adjustColumnParams(column, count, true);
+            }
+        }
+    }
+
     //processes clicks (after size is selected)
     View.OnClickListener editMapClicks = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
             //zoom button clicked, so everything in grid needs resized
             if(R.id.zoomIn == v.getId() || R.id.zoomOut == v.getId()) {
-                boolean changed = false;
-                if(v.getId() == R.id.zoomIn && tileSize < 500) {
-                    tileSize += 100;
-                    changed = true;
-                }
-                else if(v.getId() == R.id.zoomOut && tileSize > 100) {
-                    tileSize -= 100;
-                    changed = true;
-                }
-                if(changed){
-                    LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(tileSize, tileSize);
-                    //increases size of all map images
-                    for (int id = 0; id < mapSize; id++) {
-                        HexagonMaskView image = (HexagonMaskView) findViewById(id);
-                        //sets sizes to size variable increased by 100
-                        image.setLayoutParams(imageParams);
-                        //was able to remove the second image resize here, since THERE IS NO SECOND IMAGE LAYER
-                    }
-
-                    LinearLayout rootLayout = (LinearLayout) findViewById(R.id.mapMakerLayout);
-                    LinearLayout column;
-                    //number of columns = number of rows, since I only make square maps, so I can use count as rowLength
-                    int count = rootLayout.getChildCount();
-                    int leftMargin=0, topMargin = 0;
-
-                    //set parameters for first column, to avoid unnecessary checks during the loop
-                    LinearLayout.LayoutParams columnParams = new LinearLayout.LayoutParams(tileSize, count*tileSize);
-                    columnParams.setMargins(leftMargin,topMargin,0,-topMargin);
-                    column = (LinearLayout)rootLayout.getChildAt(0);
-                            column.setLayoutParams(columnParams);
-
-                    //do params for every other column, including shifting them all left, and every other one down
-                    leftMargin = -tileSize/4;
-                    columnParams = new LinearLayout.LayoutParams(tileSize, count*tileSize + tileSize/2);
-                    for (int i = 1; i < count; i++) {
-                        if(i % 2 == 1)
-                            topMargin = (int)(Math.sqrt(3.0)/2 * tileSize / 2);
-                        else
-                            topMargin = 0;
-                        columnParams.setMargins(leftMargin,topMargin,0,-topMargin);
-                        column = (LinearLayout)rootLayout.getChildAt(i);
-                        column.setLayoutParams(columnParams);
-                    }
-                }
+                zoomClick(v.getId());
             }
             //send button clicked
             else if(R.id.confirm == v.getId()){
