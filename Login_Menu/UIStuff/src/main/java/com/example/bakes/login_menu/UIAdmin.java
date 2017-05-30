@@ -165,7 +165,7 @@ public class UIAdmin extends AppCompatActivity {
             column.addView(image);
 
             //he had a separate method just for this, which is odd since it always adds the same image
-            image.setImageResource(R.drawable.p0);
+            image.setImageResource(R.drawable.p2);
             image.setOnClickListener(editMapClicks);
         }
     }

@@ -12,11 +12,6 @@ import android.view.ViewGroup;
 /* Adapted from SceLus's comment on StackOverflow
  * https://stackoverflow.com/a/22987264
  *
- * TODO:
- *  I've noticed that after changes I've made, it will show ugly borders on images if they aren't
- *      in proportion to the hexagons (height = sqrt(3)/2 * width).
- *      Seems to be related to the changed onMeasure (I can run the original HexagonMaskView and it doesn't have the same problems)
- *
  * modifications made:
  *      Class now extends AppCompatImageView. Because Android Studio wanted me to
  *          I won't be using tint or anything, so it doesn't really matter either way.
@@ -25,6 +20,7 @@ import android.view.ViewGroup;
  *      If no layoutParams are set, it defaults to 100 height (will end up being a bit less)
  *          and 100 width
  *      Removed setRadius and setBorderColor
+ *
  */
 
 //I extended it from this because it didn't like me extending ImageView. I don't think I'll be using
@@ -51,6 +47,7 @@ public class HexagonMaskView extends android.support.v7.widget.AppCompatImageVie
     }
 
     private void init() {
+        setScaleType(ScaleType.CENTER_CROP);
         this.hexagonPath = new Path();
         this.hexagonBorderPath = new Path();
 
@@ -64,31 +61,33 @@ public class HexagonMaskView extends android.support.v7.widget.AppCompatImageVie
     //Changed it from pointy to flat top hexagons
     private void calculatePath(float radius) {
         float halfRadius = radius / 2f;
-        float triangleHeight = (float) (Math.sqrt(3.0)/2 * radius);
+        //added height offsets a bit in sort of a hackish attempt to get horizontal lines to show
+        float triangleHeight = this.getMeasuredHeight()/2f;
         float centerX = getMeasuredWidth() / 2f;
         float centerY = getMeasuredHeight() / 2f;
+        float offset = 1f;
 
         //draw hexagon which will be filled with the image
         hexagonPath.reset();
-        hexagonPath.moveTo(centerX - halfRadius, centerY - triangleHeight);
-        hexagonPath.lineTo(centerX + halfRadius, centerY - triangleHeight);
+        hexagonPath.moveTo(centerX - halfRadius, centerY - triangleHeight + offset);
+        hexagonPath.lineTo(centerX + halfRadius, centerY - triangleHeight + offset);
         hexagonPath.lineTo(centerX + radius, centerY);
-        hexagonPath.lineTo(centerX + halfRadius, centerY + triangleHeight);
-        hexagonPath.lineTo(centerX - halfRadius, centerY + triangleHeight);
+        hexagonPath.lineTo(centerX + halfRadius, centerY + triangleHeight - offset);
+        hexagonPath.lineTo(centerX - halfRadius, centerY + triangleHeight - offset);
         hexagonPath.lineTo(centerX - radius, centerY);
         hexagonPath.close();
 
         float radiusBorder = radius + .5f;
         float halfRadiusBorder = radiusBorder / 2f;
-        float triangleBorderHeight = (float) (Math.sqrt(3.0) * halfRadiusBorder);
+        float borderOffset = offset/2;
 
         //adds a small border to the edges of the hexagon
         hexagonBorderPath.reset();
-        hexagonBorderPath.moveTo(centerX - halfRadiusBorder, centerY - triangleBorderHeight);
-        hexagonBorderPath.lineTo(centerX + halfRadiusBorder, centerY - triangleBorderHeight);
+        hexagonBorderPath.moveTo(centerX - halfRadiusBorder, centerY - triangleHeight + borderOffset);
+        hexagonBorderPath.lineTo(centerX + halfRadiusBorder, centerY - triangleHeight + borderOffset);
         hexagonBorderPath.lineTo(centerX + radiusBorder, centerY);
-        hexagonBorderPath.lineTo(centerX + halfRadiusBorder, centerY + triangleBorderHeight);
-        hexagonBorderPath.lineTo(centerX - halfRadiusBorder, centerY + triangleBorderHeight);
+        hexagonBorderPath.lineTo(centerX + halfRadiusBorder, centerY + triangleHeight - borderOffset);
+        hexagonBorderPath.lineTo(centerX - halfRadiusBorder, centerY + triangleHeight - borderOffset);
         hexagonBorderPath.lineTo(centerX - radiusBorder, centerY);
         hexagonBorderPath.close();
         invalidate();
@@ -96,7 +95,6 @@ public class HexagonMaskView extends android.support.v7.widget.AppCompatImageVie
 
     @Override
     public void onDraw(Canvas c) {
-        setScaleType(ScaleType.CENTER_CROP);
         c.drawPath(hexagonBorderPath, mBorderPaint);
         c.clipPath(hexagonPath);
         c.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
