@@ -19,7 +19,8 @@ import coms309.mike.clientcomm.VolleyCallback;
 
 public class Admin extends AppCompatActivity{
     private int countLength=0;
-    private int townCount = 0;
+    private boolean p1Capital = false;
+    private boolean p2Capital = false;
     private String[] terrainMap;
     private int mapSize;
     private Context context;
@@ -48,11 +49,17 @@ public class Admin extends AppCompatActivity{
         //length of array is constant, but I only want to sell a full array
         if(terrainMap[mapID] == null)
             countLength++;
-            //maps must contain at least two towns. I check here so I won't have to check in linear time on sendMap
-        else if(terrainMap[mapID].equals("town"))
-            townCount--;
-        if(terrain.equals("town"))
-            townCount++;
+        //make sure a start location is correctly flagged if another tile is placed over it
+        else if(terrainMap[mapID].equals("town_friendly_start"))
+            p1Capital = false;
+        else if(terrainMap[mapID].equals("town_hostile_start"))
+            p2Capital = false;
+        // maps must have starting locations for both players.
+        // I check here so I won't have to check in linear time on sendMap
+        if(terrain.equals("town_friendly_start"))
+            p1Capital = true;
+        else if(terrain.equals("town_hostile_start"))
+            p2Capital = true;
         terrainMap[mapID] = terrain;
     }
 
@@ -61,8 +68,8 @@ public class Admin extends AppCompatActivity{
             Toast.makeText(context, "Map is not complete.", Toast.LENGTH_SHORT).show();
             return;
         }
-        else if(townCount < 2){
-            Toast.makeText(context, "Maps must have at least two towns.", Toast.LENGTH_SHORT).show();
+        else if(!(p1Capital && p2Capital)){
+            Toast.makeText(context, "Maps must have starting locations for both players", Toast.LENGTH_SHORT).show();
             return;
         }
         ClientComm comm = new ClientComm(context);

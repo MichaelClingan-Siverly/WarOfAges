@@ -1,11 +1,10 @@
 package com.example.bakes.login_menu;
 
 import android.content.Intent;
-import android.graphics.drawable.Drawable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.content.res.AppCompatResources;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,23 +14,17 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
-import android.widget.RelativeLayout;
 import android.widget.ScrollView;
-import android.widget.TableLayout;
-import android.widget.TableRow;
 import android.widget.Toast;
+import java.lang.reflect.Field;
+
+import java.util.ArrayList;
 
 import warofages.mapmaker.Admin;
 
 public class UIAdmin extends AppCompatActivity {
-    final int desert = 1;
-    final int forest = 2;
-    final int meadow = 3;
-    final int mountain = 4;
-    final int town = 5;
-    final int pond = 6;
-    final int NUM_TER_KINDS = 6;
     final int OFFSET = 10000;
+    ArrayList<tileTuple> tiles;
 
     boolean movedToOtherIntent = false;
     //The number of squares in the map. Needs clean squareroot
@@ -51,6 +44,7 @@ public class UIAdmin extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.map_maker);
+        findTiles();
 
         //on click listener for create button
         Button b = (Button)findViewById(R.id.confirm);
@@ -65,6 +59,35 @@ public class UIAdmin extends AppCompatActivity {
             }
         });
     }
+
+    /*
+        *  a small container class used when creating tiles or giving them to the sender
+        */
+    private class tileTuple{
+        int ID;
+        String tupleName;
+        tileTuple(int id, String name){
+            ID = id;
+            tupleName = name;
+        }
+    }
+    private void findTiles(){
+        tiles = new ArrayList<>();
+        Field[] fields = R.drawable.class.getFields();
+        for(Field field : fields){
+            if(field.getName().startsWith("tile")){
+                String s = field.getName();
+                s = s.substring(5);
+                try {
+                    tiles.add(new tileTuple(field.getInt(null), s));
+                }
+                catch(IllegalAccessException e){
+                    Log.e("findTiles", e.getMessage());
+                }
+            }
+        }
+    }
+
     private void buildSizeDialog(){
         /*
          * Ok, so this doesn't seem worth it. Not only did I make the xml, all this stuff
@@ -117,8 +140,6 @@ public class UIAdmin extends AppCompatActivity {
             Toast.makeText(getApplicationContext(), "Map too large. Reduced to 99.", Toast.LENGTH_SHORT).show();
         else if(mapSize > chosenMapSize*chosenMapSize)
             Toast.makeText(getApplicationContext(), "Map too small. Increased to 2.", Toast.LENGTH_SHORT).show();
-        if(mapSize > 70)
-            Toast.makeText(getApplicationContext(), "Maps this large may affect performance.", Toast.LENGTH_SHORT).show();
         initMap();
         initTerrainPopup();
     }
@@ -165,7 +186,7 @@ public class UIAdmin extends AppCompatActivity {
             column.addView(image);
 
             //he had a separate method just for this, which is odd since it always adds the same image
-            image.setImageResource(R.drawable.p2);
+            image.setImageResource(R.drawable.blank_tile);
             image.setOnClickListener(editMapClicks);
         }
     }
@@ -178,21 +199,29 @@ public class UIAdmin extends AppCompatActivity {
         ImageView image;
         terrainPopup = new PopupWindow(this);
         popLayout = new LinearLayout(this);
-        //I start at 1, because 'p0' is a blank tile, which we don't want the admin to place on the map
-        for(int i = 1; i <= NUM_TER_KINDS; i++){
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(100,100);
+        popLayout.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout popRow = new LinearLayout(this);
+        //made it add tiles to the popup dynamically - in case more tile types are added later
+        for(int i = 0; i < tiles.size(); i++){
             image = new ImageView(this);
-            //I didn't know how to get the identifier when cleaning things up.
-            //Found it below in loadTerrain, in a line from an old group member.
-            int resID = getResources().getIdentifier("p"+i,"drawable", getPackageName());
+            int resID = tiles.get(i).ID;
             image.setImageResource(resID);
             //added 10000, because I know it'll be larger than any id generated as part of the map
             image.setId(i + OFFSET);
             image.setOnClickListener(editMapClicks);
-            popLayout.addView(image, new LinearLayout.LayoutParams(100,100));
+            popRow.addView(image, params);
+
+            if(i % 5 == 4){
+                popLayout.addView(popRow);
+                popRow = new LinearLayout(this);
+            }
         }
+        popLayout.addView(popRow);
         terrainPopup.setContentView(popLayout);
         terrainPopup.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
         terrainPopup.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
+        terrainPopup.setBackgroundDrawable(null);
     }
 
     /* Should not be called on first column
@@ -250,6 +279,21 @@ public class UIAdmin extends AppCompatActivity {
         }
     }
 
+    private void setTile(int index){
+        //user can click on the map while terrainPopup is showing, so I check for that
+        if(index >= tiles.size() || index < 0)
+            return;
+
+        tileTuple tile = tiles.get(index);
+        int resId = tile.ID;
+        String terrainName = tile.tupleName;
+        sender.addTile(terrainName, changing);
+
+        //updates the terrain that was selected to be changed
+        ImageView toChange = (ImageView) findViewById(changing);
+        toChange.setImageResource(resId);
+    }
+
     //processes clicks (after size is selected)
     View.OnClickListener editMapClicks = new View.OnClickListener() {
         @Override
@@ -269,42 +313,9 @@ public class UIAdmin extends AppCompatActivity {
                 changing = v.getId();
             }
             else{
-                int resId = 0;
-                String terrainName = "";
                 //subtracted 10000 because I ended up adding it when creating the popup id's
                 int id = v.getId() - OFFSET;
-                //finds which image was selected in the terrain popup
-                switch(id){
-                    case desert:
-                        resId = R.drawable.p1;
-                        terrainName = "desert";
-                        break;
-                    case forest:
-                        resId = R.drawable.p2;
-                        terrainName = "forest";
-                        break;
-                    case meadow:
-                        resId = R.drawable.p3;
-                        terrainName = "meadow";
-                        break;
-                    case mountain:
-                        resId = R.drawable.p4;
-                        terrainName = "mountain";
-                        break;
-                    case town:
-                        resId = R.drawable.p5;
-                        terrainName = "town";
-                        break;
-                    case pond:
-                        resId = R.drawable.p6;
-                        terrainName = "pond";
-                        break;
-                }
-                if(resId != 0){
-                    ImageView toChange = (ImageView) findViewById(changing);
-                    toChange.setImageResource(resId);
-                    sender.addTile(terrainName, changing);
-                }
+                setTile(id);
                 terrainPopup.dismiss();
                 changing = -1;
             }
@@ -312,8 +323,10 @@ public class UIAdmin extends AppCompatActivity {
     };
     @Override
     public void onBackPressed(){
-        if(terrainPopup != null && terrainPopup.isShowing())
+        if(terrainPopup != null && terrainPopup.isShowing()) {
             terrainPopup.dismiss();
+            changing = -1;
+        }
         else {
             Intent menuIntent = new Intent(getApplicationContext(), com.example.bakes.login_menu.Menu.class);
             menuIntent.putExtra("username", getIntent().getStringExtra("username"));
