@@ -17,16 +17,12 @@
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
-                <TableLayout
+                <LinearLayout
                     android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:id="@+id/inLayout">
-                </TableLayout>
-                <TableLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:id="@+id/outLayout">
-                </TableLayout>
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:id="@+id/gameLayout">
+                </LinearLayout>
             </RelativeLayout>
         </HorizontalScrollView>
     </ScrollView>
@@ -50,7 +46,7 @@
             android:layout_width="0dp"
             android:layout_height="fill_parent"
             android:layout_weight="30"
-            android:text="Zoom In"
+            android:text="@string/LeftButton"
             android:id="@+id/B1"/>
         <Button
             android:layout_width="0dp"
@@ -62,7 +58,7 @@
             android:layout_width="0dp"
             android:layout_height="fill_parent"
             android:layout_weight="30"
-            android:text="Zoom Out"
+            android:text="@string/RightButton"
             android:id="@+id/B2"/>
     </LinearLayout>
 

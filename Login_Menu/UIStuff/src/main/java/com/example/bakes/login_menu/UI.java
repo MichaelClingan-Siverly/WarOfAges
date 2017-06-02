@@ -3,6 +3,8 @@ package com.example.bakes.login_menu;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -47,7 +49,7 @@ public class UI extends AppCompatActivity {
     //The number of squares in the map. Needs clean squareroot
     static int mapSize = 100;
     //size of the map tiles image
-    int size = 100;
+    int tileSize = 100;
     //username
     String username = "";
     //current player
@@ -182,48 +184,60 @@ public class UI extends AppCompatActivity {
         ((InactivePlayer)player).waitForTurn(this);
     }
 
+    //Create table of any size(must be square)
     private void setButtons(){
-        //Create table of any size(must be square)
-
         //Creates an initial row
-        TableRow rowTerrain = new TableRow(this);
-        TableRow rowArmy = new TableRow(this);
+        LinearLayout mapLayout = (LinearLayout) findViewById(R.id.gameLayout);
 
-        //Getting the terrain and army grid from the xml
-        TableLayout layoutT = (TableLayout) findViewById(R.id.inLayout);
-        TableLayout layoutA = (TableLayout) findViewById(R.id.outLayout);
+        //Creates an initial column
+        LinearLayout column = new LinearLayout(this);
+        column.setOrientation(LinearLayout.VERTICAL);
+        mapLayout.addView(column);
 
-        //Adds current row to their respective grid (Army is created stacked over terrain)
-        layoutT.addView(rowTerrain);
-        layoutA.addView(rowArmy);
-
-        int rowlength = 0;
-        //TODO I'm positive the map size bug is around here.
-        for(int id = 0;id < mapSize;id++){
-            //if row is filled
-            if(rowlength == Math.sqrt(mapSize)){
+        //set images to all columns. create new columns as needed
+        for(int id = 0, rowLength = 0; id < mapSize; id++, rowLength++){
+            //if column is filled, begin new column and set parameters for it
+            if(rowLength == Math.sqrt(mapSize)){
                 //Creates a new row for both grids
-                rowTerrain = new TableRow(this);
-                rowArmy = new TableRow(this);
-                //Adds row to grids
-                layoutT.addView(rowTerrain);
-                layoutA.addView(rowArmy);
-                rowlength = 0;
+                column = new LinearLayout(this);
+                //we move every second column down a bit
+                if((id / rowLength) % 2 == 1)
+                    adjustColumnParams(column, rowLength, false);
+                else
+                    adjustColumnParams(column, rowLength, true);
+
+                //Adds column to the matrix
+                mapLayout.addView(column);
+                rowLength = 0;
             }
 
-            //creates image and adds it to terrain
-            ImageView image = new ImageView(this);
+            //creates image and adds it to terrain. HexagonMaskView has default size of 100x100
+            HexagonMaskView image = new HexagonMaskView(this);
             image.setId(id);
-            rowTerrain.addView(image);
+            column.addView(image);
 
-            //creates image and adds it to army
-            image = new ImageView(this);
-            image.setId(id + mapSize);
-            //Sets and onclick listener to the army id
+            //he had a separate method just for this, which is odd since it always adds the same image
             image.setOnClickListener(onClickListener);
-            rowArmy.addView(image);
-            rowlength++;
         }
+    }
+
+    /* Should not be called on first column
+     * first column doesn't need special parameters besides being set to vertical.
+     * evenIndex: true if index 0,2,4... false if its odd
+     */
+    private void adjustColumnParams(LinearLayout column, int rowLength, boolean evenIndex){
+        //set orientation just in case it hasn't been done at creation
+        column.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams params;
+        if(evenIndex) {
+            params = new LinearLayout.LayoutParams(tileSize, rowLength * tileSize);
+            params.setMargins(-tileSize/4, 0,0,0);
+        }
+        else {
+            params = new LinearLayout.LayoutParams(tileSize, rowLength * tileSize + tileSize / 2);
+            params.setMargins(-tileSize/4, (int)(Math.sqrt(3.0)/2 * tileSize / 2), 0, -(int)(Math.sqrt(3.0)/2 * tileSize / 2));
+        }
+        column.setLayoutParams(params);
     }
 
     //gets map from server
@@ -247,21 +261,21 @@ public class UI extends AppCompatActivity {
             public void onSuccess(JSONArray result) {
                 Log.d("basicMap result", result.toString());
                 try {
-                    if (result.getJSONObject(0).getString("code").contains("update_success")) {
-                        String mapper = result.getJSONObject(1).toString();
+                    if (result.getJSONObject(0).getString("code").equals("update_success")) {
+                        String mapper = result.getJSONObject(1).getString("Map");
+                        Scanner scan = new Scanner(mapper).useDelimiter(":");
+                        mapSize = scan.nextInt();
+
                         //get rid of key
-                        mapper = mapper.substring(8);
-                        adjustMapSize(mapper);
                         Log.d("med", "map size: " +mapSize);
                         setButtons();
                         terrainMap = new int[mapSize];
-                        //get rid of all characters which were necessary for a connection success
-                        mapper=mapper.replaceAll("A","");
-                        Scanner scan=new Scanner(mapper).useDelimiter(":");
+
+                        int tID = 0;
                         while (scan.hasNextInt()) {
                             int terrain = scan.nextInt();
-                            int tid = scan.nextInt();
-                            loadTerrain(terrain, tid);
+                            loadTerrain(terrain, tID);
+                            tID++;
                         }
                         scan.close();
                         finishSettingUp();
@@ -272,16 +286,6 @@ public class UI extends AppCompatActivity {
                 }
             }
         });
-    }
-
-    private void adjustMapSize(String mapString){
-        mapSize = 0;
-        for(int i = 0; i < mapString.length(); i++){
-            if(mapString.charAt(i) == ':'){
-                mapSize++;
-            }
-        }
-        mapSize = mapSize / 2;
     }
 
     //gets players from server
@@ -308,20 +312,55 @@ public class UI extends AppCompatActivity {
     //load given terrain at given id
     public void loadTerrain(int terrain, int id){
         //gets imageview object at given id
-        ImageView image = (ImageView) findViewById(id);
+//        ImageView image = (ImageView) findViewById(id);
         //finds terrain image (called p + given terrain ex p1) and puts it into the imageview
-        String picName = "p" + Integer.toString(terrain);
+        String picName = "";
+        switch(terrain){
+            case 1:
+                picName = "tile_desert";
+                break;
+            case 2:
+                picName = "tile_forest";
+                break;
+            case 3:
+                picName = "tile_meadow";
+                break;
+            case 4:
+                picName = "tile_mountain";
+                break;
+            case 5:
+                picName = "tile_town_friendly";
+                break;
+            case 6:
+                picName = "tile_town_hostile";
+                break;
+            case 7:
+                picName = "tile_town_neutral";
+                break;
+            case 8:
+                picName = "tile_water";
+                break;
+        }
 
         //gets and sets reference for picture ID
-        int resID = getResources().getIdentifier(picName, "drawable", getPackageName());
-        image.setImageResource(resID);
+        int resID = getResources().getIdentifier(picName.equals("") ? picName : "p12", "drawable", getPackageName());
+        int mapSquare = (int)Math.sqrt(mapSize);
+        int x = id / mapSquare;
+        int y = id % mapSquare;
+        LinearLayout layout = (LinearLayout)findViewById(R.id.gameLayout);
+        layout = (LinearLayout)layout.getChildAt(x);
+        HexagonMaskView image = (HexagonMaskView)layout.getChildAt(y);
 
-        //sets sizes of the image and the overlapping army layer using size variable.
-        //army is id + mapsize because the army is an overlapping, seperate map
-        TableRow.LayoutParams parms = new TableRow.LayoutParams(size,size);
-        image.setLayoutParams(parms);
-        image = (ImageView) findViewById(id + mapSize);
-        image.setLayoutParams(parms);
+//        image.setImageResource(resID);
+        image.setBackgroundResource(resID);
+
+        //TODO probably implement an army layer
+//        //sets sizes of the image and the overlapping army layer using size variable.
+//        //army is id + mapsize because the army is an overlapping, seperate map
+//        TableRow.LayoutParams parms = new TableRow.LayoutParams(tileSize,tileSize);
+//        image.setLayoutParams(parms);
+//        image = (ImageView) findViewById(id + mapSize);
+//        image.setLayoutParams(parms);
 
         terrainMap[id] = terrain;
     }
@@ -383,28 +422,28 @@ public class UI extends AppCompatActivity {
                 int vID = v.getId();
                 //increases size of map when clicked button is increase size button
                 if (R.id.B1 == v.getId()) {
-                    size += 100;
+                    tileSize += 100;
                     //loops through entire map by getting their imageviews from the ids
                     for (int id = 0; id < mapSize; id++) {
                         ImageView image = (ImageView) findViewById(id);
 
                         //sets sizes to size variable increased by 100
-                        TableRow.LayoutParams parms = new TableRow.LayoutParams(size, size);
+                        TableRow.LayoutParams parms = new TableRow.LayoutParams(tileSize, tileSize);
                         image.setLayoutParams(parms);
                         image = (ImageView) findViewById(id + mapSize);
                         image.setLayoutParams(parms);
                     }
                 }//decreases size of map when button clicked is decrease size button
                 else if (R.id.B2 == v.getId()) {
-                    if (size > 100) {
-                        size -= 100;
+                    if (tileSize > 100) {
+                        tileSize -= 100;
                     }
                     //loops through entire map by getting their imageviews from the ids
                     for (int id = 0; id < mapSize; id++) {
                         ImageView image = (ImageView) findViewById(id);
 
                         //sets sizes to size variable decreased by 100 (min of 100)
-                        TableRow.LayoutParams parms = new TableRow.LayoutParams(size, size);
+                        TableRow.LayoutParams parms = new TableRow.LayoutParams(tileSize, tileSize);
                         image.setLayoutParams(parms);
                         image = (ImageView) findViewById(id + mapSize);
                         image.setLayoutParams(parms);
@@ -462,7 +501,7 @@ public class UI extends AppCompatActivity {
                             Integer moves[] = getMoves(movingUnit);
                             Integer attacks[] = getAttackRange(movingUnit);
                             Integer largestArea[];
-                            if (moves.length > attacks.length && !movingUnit.checkIfMoved()) {
+                            if (moves.length > attacks.length && movingUnit != null && !movingUnit.checkIfMoved()) {
                                 largestArea = moves;
                             } else {
                                 largestArea = attacks;
@@ -489,7 +528,7 @@ public class UI extends AppCompatActivity {
                             townMenu.dismiss();
                         }
                         //TODO
-                        else if (v.getId() > MOVE_ICON_ID && !movingUnit.checkIfMoved()) {//clicked on one of the add unit buttons
+                        else if (v.getId() > MOVE_ICON_ID && movingUnit != null && !movingUnit.checkIfMoved()) {//clicked on one of the add unit buttons
                             //take all surrounding tiles and add unit to first empty one
                             int unitIDtoAdd = v.getId() - MOVE_ICON_ID;
                             //surrounding tiles
