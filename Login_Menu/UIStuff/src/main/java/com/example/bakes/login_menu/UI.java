@@ -2,6 +2,7 @@ package com.example.bakes.login_menu;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
@@ -181,7 +182,8 @@ public class UI extends AppCompatActivity {
             getPlayers();
         }
 
-        ((InactivePlayer)player).waitForTurn(this);
+        //TODO uncomment this
+//        ((InactivePlayer)player).waitForTurn(this);
     }
 
     //Create table of any size(must be square)
@@ -343,26 +345,22 @@ public class UI extends AppCompatActivity {
         }
 
         //gets and sets reference for picture ID
-        int resID = getResources().getIdentifier(picName.equals("") ? picName : "p12", "drawable", getPackageName());
-        int mapSquare = (int)Math.sqrt(mapSize);
-        int x = id / mapSquare;
-        int y = id % mapSquare;
-        LinearLayout layout = (LinearLayout)findViewById(R.id.gameLayout);
-        layout = (LinearLayout)layout.getChildAt(x);
-        HexagonMaskView image = (HexagonMaskView)layout.getChildAt(y);
+        int resID = getResources().getIdentifier(picName.equals("") ? "p12" : picName, "drawable", getPackageName());
+        HexagonMaskView image = getImage(id);
 
-//        image.setImageResource(resID);
-        image.setBackgroundResource(resID);
-
-        //TODO probably implement an army layer
-//        //sets sizes of the image and the overlapping army layer using size variable.
-//        //army is id + mapsize because the army is an overlapping, seperate map
-//        TableRow.LayoutParams parms = new TableRow.LayoutParams(tileSize,tileSize);
-//        image.setLayoutParams(parms);
-//        image = (ImageView) findViewById(id + mapSize);
-//        image.setLayoutParams(parms);
+        image.setImageResource(resID);
+        //army layer is implemented as a foreground, so I don't need to create a new image anymore
 
         terrainMap[id] = terrain;
+    }
+
+    HexagonMaskView getImage(int terrainID){
+        int mapRoot = (int)Math.sqrt(mapSize);
+        int x = terrainID / mapRoot;
+        int y = terrainID % mapRoot;
+        LinearLayout layout = (LinearLayout)findViewById(R.id.gameLayout);
+        layout = (LinearLayout)layout.getChildAt(x);
+        return (HexagonMaskView)layout.getChildAt(y);
     }
 
     public void clearMap(){
@@ -695,9 +693,10 @@ public class UI extends AppCompatActivity {
 
     @Override
     public void onBackPressed(){
-        if(player instanceof InactivePlayer){
-            ((InactivePlayer) player).killPoll();
-        }
+        //TODO uncomment this
+//        if(player instanceof InactivePlayer){
+//            ((InactivePlayer) player).killPoll();
+//        }
         Intent intent = new Intent(getApplicationContext(), com.example.bakes.login_menu.Menu.class);
         intent.putExtra("username", username);
         intent.putExtra("message", "leftGame");
