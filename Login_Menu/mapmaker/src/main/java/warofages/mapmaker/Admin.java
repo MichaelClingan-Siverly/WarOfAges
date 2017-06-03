@@ -2,12 +2,14 @@ package warofages.mapmaker;
 
 import android.content.Context;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -23,36 +25,50 @@ public class Admin extends AppCompatActivity{
     private boolean p2Capital = false;
     private String[] terrainMap;
     private int mapSize;
+    ArrayList<tileTuple> tiles;
     private Context context;
-    public Admin(Context context, int rootOfMapSize){
+    private int changingIndex = -1;
+
+    public Admin(Context context){
         this.context=context;
-        initMap(rootOfMapSize);
+//        initMap(rootOfMapSize);
     }
+
     public void initMap(int rootOfMapSize){
-        String s = "Map of size "+rootOfMapSize+" created.";
-        if(rootOfMapSize < 2) {
+        if(rootOfMapSize < 2)
             rootOfMapSize = 2;
-            s = "Too small. Map size increased to 2.";
-        }
-        else if(rootOfMapSize > 99){
+        else if(rootOfMapSize > 99)
             rootOfMapSize = 99;
-            s = "Too large. Map size reduced to 99.";
-        }
+
         mapSize = rootOfMapSize * rootOfMapSize;
         terrainMap = new String[mapSize];
     }
+
+    public void setChanging(int i){
+        changingIndex = i;
+    }
+    public void resetChanging(){
+        changingIndex = -1;
+    }
+    /*
+     * returns index of map location flagged to be changed, or -1 if there is none
+     */
+    public int getChangingIndex(){
+        return changingIndex;
+    }
+
     public int getMapSize(){
         return mapSize;
     }
 
-    public void addTile(String terrain, int mapID){
+    public void addTile(String terrain){
         //length of array is constant, but I only want to sell a full array
-        if(terrainMap[mapID] == null)
+        if(terrainMap[changingIndex] == null)
             countLength++;
         //make sure a start location is correctly flagged if another tile is placed over it
-        else if(terrainMap[mapID].equals("town_friendly_start"))
+        else if(terrainMap[changingIndex].equals("town_friendly_start"))
             p1Capital = false;
-        else if(terrainMap[mapID].equals("town_hostile_start"))
+        else if(terrainMap[changingIndex].equals("town_hostile_start"))
             p2Capital = false;
         // maps must have starting locations for both players.
         // I check here so I won't have to check in linear time on sendMap
@@ -60,7 +76,43 @@ public class Admin extends AppCompatActivity{
             p1Capital = true;
         else if(terrain.equals("town_hostile_start"))
             p2Capital = true;
-        terrainMap[mapID] = terrain;
+        terrainMap[changingIndex] = terrain;
+    }
+
+    /*
+    *  a small container class used when creating tiles or giving them to the sender
+    */
+    private class tileTuple{
+        int ID;
+        String tupleName;
+        tileTuple(int id, String name){
+            ID = id;
+            tupleName = name;
+        }
+    }
+    public void findTiles(Field[] fields){
+        tiles = new ArrayList<>();
+        for(Field field : fields){
+            if(field.getName().startsWith("tile")){
+                String s = field.getName();
+                s = s.substring(5);
+                try {
+                    tiles.add(new tileTuple(field.getInt(null), s));
+                }
+                catch(IllegalAccessException e){
+                    Log.e("findTiles", e.getMessage());
+                }
+            }
+        }
+    }
+    public int getNumTiles(){
+        return tiles.size();
+    }
+    public int getTileID(int index){
+        return tiles.get(index).ID;
+    }
+    public String getTileName(int index){
+        return tiles.get(index).tupleName;
     }
 
     public void sendMap(){

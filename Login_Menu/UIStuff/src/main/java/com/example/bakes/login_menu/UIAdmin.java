@@ -24,17 +24,12 @@ import warofages.mapmaker.Admin;
 
 public class UIAdmin extends AppCompatActivity {
     final int OFFSET = 10000;
-    ArrayList<tileTuple> tiles;
 
     boolean movedToOtherIntent = false;
-    //The number of squares in the map. Needs clean squareroot
-    int mapSize;
     //size of the map tiles
     int tileSize = 100;
     //popup window
     PopupWindow terrainPopup;
-    //location of current tile to be changed. Since map IDs are >= 0, neg #'s mean no tile changing
-    int changing = -1;
     //enter size popup window
     AlertDialog sizeDialog;
     //Admin object for server connection
@@ -44,7 +39,8 @@ public class UIAdmin extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.map_maker);
-        findTiles();
+        sender = new Admin(getApplicationContext());
+        sender.findTiles(R.drawable.class.getFields());
 
         //on click listener for create button
         Button b = (Button)findViewById(R.id.confirm);
@@ -60,33 +56,8 @@ public class UIAdmin extends AppCompatActivity {
         });
     }
 
-    /*
-        *  a small container class used when creating tiles or giving them to the sender
-        */
-    private class tileTuple{
-        int ID;
-        String tupleName;
-        tileTuple(int id, String name){
-            ID = id;
-            tupleName = name;
-        }
-    }
-    private void findTiles(){
-        tiles = new ArrayList<>();
-        Field[] fields = R.drawable.class.getFields();
-        for(Field field : fields){
-            if(field.getName().startsWith("tile")){
-                String s = field.getName();
-                s = s.substring(5);
-                try {
-                    tiles.add(new tileTuple(field.getInt(null), s));
-                }
-                catch(IllegalAccessException e){
-                    Log.e("findTiles", e.getMessage());
-                }
-            }
-        }
-    }
+
+
 
     private void buildSizeDialog(){
         /*
@@ -133,12 +104,11 @@ public class UIAdmin extends AppCompatActivity {
     };
 
     private void proceedAfterSizeEntered(int chosenMapSize){
-        sender = new Admin(getApplicationContext(), chosenMapSize);
+        sender.initMap(chosenMapSize);
         //mapSize may not be what was entered, as there is a min and max size we allow.
-        mapSize = sender.getMapSize();
-        if(mapSize < chosenMapSize*chosenMapSize)
+        if(sender.getMapSize() < chosenMapSize*chosenMapSize)
             Toast.makeText(getApplicationContext(), "Map too large. Reduced to 99.", Toast.LENGTH_SHORT).show();
-        else if(mapSize > chosenMapSize*chosenMapSize)
+        else if(sender.getMapSize() > chosenMapSize*chosenMapSize)
             Toast.makeText(getApplicationContext(), "Map too small. Increased to 2.", Toast.LENGTH_SHORT).show();
         initMap();
         initTerrainPopup();
@@ -159,9 +129,9 @@ public class UIAdmin extends AppCompatActivity {
         mapLayout.addView(column);
 
         //set images to all columns. create new columns as needed
-        for(int id = 0, rowLength = 0; id < mapSize; id++, rowLength++){
+        for(int id = 0, rowLength = 0; id < sender.getMapSize(); id++, rowLength++){
             //if column is filled, begin new column and set parameters for it
-            if(rowLength == Math.sqrt(mapSize)){
+            if(rowLength == Math.sqrt(sender.getMapSize())){
                 //Creates a new row for both grids
                 column = new LinearLayout(this);
                 //we move every second column down a bit
@@ -198,9 +168,9 @@ public class UIAdmin extends AppCompatActivity {
         popLayout.setOrientation(LinearLayout.VERTICAL);
         LinearLayout popRow = new LinearLayout(this);
         //made it add tiles to the popup dynamically - in case more tile types are added later
-        for(int i = 0; i < tiles.size(); i++){
+        for(int i = 0; i < sender.getNumTiles(); i++){
             image = new ImageView(this);
-            int resID = tiles.get(i).ID;
+            int resID = sender.getTileID(i);
             image.setImageResource(resID);
             //added 10000, because I know it'll be larger than any id generated as part of the map
             image.setId(i + OFFSET);
@@ -238,7 +208,6 @@ public class UIAdmin extends AppCompatActivity {
         column.setLayoutParams(params);
     }
 
-
     public void zoomClick(View v){
         boolean changed = false;
         switch (v.getId()){
@@ -258,7 +227,7 @@ public class UIAdmin extends AppCompatActivity {
         if(changed){
             LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(tileSize, tileSize);
             //increases size of all map images
-            for (int id = 0; id < mapSize; id++) {
+            for (int id = 0; id < sender.getMapSize(); id++) {
                 HexagonMaskView image = (HexagonMaskView) findViewById(id);
                 //sets sizes to size variable increased by 100
                 image.setLayoutParams(imageParams);
@@ -283,16 +252,16 @@ public class UIAdmin extends AppCompatActivity {
 
     private void setTile(int index){
         //user can click on the map while terrainPopup is showing, so I check for that
-        if(index >= tiles.size() || index < 0)
+        if(index >= sender.getNumTiles() || index < 0)
             return;
 
-        tileTuple tile = tiles.get(index);
-        int resId = tile.ID;
-        String terrainName = tile.tupleName;
-        sender.addTile(terrainName, changing);
+//        tileTuple tile = tiles.get(index);
+        int resId = sender.getTileID(index);
+        String terrainName = sender.getTileName(index);
+        sender.addTile(terrainName);
 
         //updates the terrain that was selected to be changed
-        ImageView toChange = (ImageView) findViewById(changing);
+        ImageView toChange = (ImageView) findViewById(sender.getChangingIndex());
         toChange.setImageResource(resId);
     }
 
@@ -305,17 +274,17 @@ public class UIAdmin extends AppCompatActivity {
                 sender.sendMap();
             }
             //map grid is clicked: find the ID of the tile to be changed
-            else if(changing == -1){
+            else if(sender.getChangingIndex() == -1){
                 ScrollView scroll = (ScrollView) findViewById(R.id.mapMakerScroll);
                 terrainPopup.showAtLocation(scroll, Gravity.TOP, 0, 500);
-                changing = v.getId();
+                sender.setChanging(v.getId());
             }
             else{
                 //subtracted 10000 because I ended up adding it when creating the popup id's
                 int id = v.getId() - OFFSET;
                 setTile(id);
                 terrainPopup.dismiss();
-                changing = -1;
+                sender.resetChanging();
             }
         }
     };
@@ -323,7 +292,7 @@ public class UIAdmin extends AppCompatActivity {
     public void onBackPressed(){
         if(terrainPopup != null && terrainPopup.isShowing()) {
             terrainPopup.dismiss();
-            changing = -1;
+            sender.resetChanging();
         }
         else {
             Intent menuIntent = new Intent(getApplicationContext(), com.example.bakes.login_menu.Menu.class);
