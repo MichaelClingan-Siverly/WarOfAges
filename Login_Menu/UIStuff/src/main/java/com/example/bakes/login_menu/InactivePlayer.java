@@ -103,6 +103,7 @@ public class InactivePlayer extends Player {
                     Log.d("JSONException", e.toString());
                 }
 
+                //units update everytime a poll is answered
                 checkIfSpectator();
 
                 //Since I made the player, myArmy, and enemyArmy in the UI static, I'm able to change its values

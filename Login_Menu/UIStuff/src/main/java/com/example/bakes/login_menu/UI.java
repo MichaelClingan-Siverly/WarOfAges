@@ -182,8 +182,7 @@ public class UI extends AppCompatActivity {
             getPlayers();
         }
 
-        //TODO uncomment this
-//        ((InactivePlayer)player).waitForTurn(this);
+        ((InactivePlayer)player).waitForTurn(this);
     }
 
     //Create table of any size(must be square)
@@ -314,8 +313,6 @@ public class UI extends AppCompatActivity {
     //load given terrain at given id
     public void loadTerrain(int terrain, int id){
         //gets imageview object at given id
-//        ImageView image = (ImageView) findViewById(id);
-        //finds terrain image (called p + given terrain ex p1) and puts it into the imageview
         String picName = "";
         switch(terrain){
             case 1:
@@ -343,21 +340,19 @@ public class UI extends AppCompatActivity {
                 picName = "tile_water";
                 break;
         }
-
-        //gets and sets reference for picture ID
+        //gets and sets reference for picture ID. "p12" would indicate something went wrong
         int resID = getResources().getIdentifier(picName.equals("") ? "p12" : picName, "drawable", getPackageName());
         HexagonMaskView image = getImage(id);
 
         image.setImageResource(resID);
         //army layer is implemented as a foreground, so I don't need to create a new image anymore
-
         terrainMap[id] = terrain;
     }
 
-    HexagonMaskView getImage(int terrainID){
+    HexagonMaskView getImage(int mapID){
         int mapRoot = (int)Math.sqrt(mapSize);
-        int x = terrainID / mapRoot;
-        int y = terrainID % mapRoot;
+        int x = mapID / mapRoot;
+        int y = mapID % mapRoot;
         LinearLayout layout = (LinearLayout)findViewById(R.id.gameLayout);
         layout = (LinearLayout)layout.getChildAt(x);
         return (HexagonMaskView)layout.getChildAt(y);
@@ -368,16 +363,20 @@ public class UI extends AppCompatActivity {
             clearImage(x);
         }
     }
+    private void clearImage(int mapID){
+        if(getImage(mapID).getForeground() != null)
+            getImage(mapID).setForeground(null);
+    }
 
     public void updateUnits(ArrayList<Unit> units, boolean friendly){
         if(friendly) {
-            for (int x = 0; x < units.size(); x++) {
-                displaySingleUnit(units.get(x), false);
+            for (int i = 0; i < units.size(); i++) {
+                displaySingleUnit(units.get(i), false);
             }
         }
         else{
-            for (int x = 0; x < units.size(); x++) {
-                displaySingleUnit(units.get(x), false);
+            for (int i = 0; i < units.size(); i++) {
+                displaySingleUnit(units.get(i), false);
             }
         }
     }
@@ -410,7 +409,6 @@ public class UI extends AppCompatActivity {
 
 
     }
-
 
     //processes clicks
     View.OnClickListener onClickListener = new View.OnClickListener() {
@@ -663,10 +661,7 @@ public class UI extends AppCompatActivity {
             }
         }
     }
-    private void clearImage(int mapID){
-        ImageView image = (ImageView)findViewById(mapID + mapSize);
-        image.setImageResource(android.R.color.transparent);
-    }
+
 
     /**
      * helper for the buttons
@@ -691,78 +686,68 @@ public class UI extends AppCompatActivity {
         return null;
     }
 
-    @Override
-    public void onBackPressed(){
-        //TODO uncomment this
-//        if(player instanceof InactivePlayer){
-//            ((InactivePlayer) player).killPoll();
-//        }
-        Intent intent = new Intent(getApplicationContext(), com.example.bakes.login_menu.Menu.class);
-        intent.putExtra("username", username);
-        intent.putExtra("message", "leftGame");
-        startActivity(intent);
-        finish();
-    }
     private void displaySingleUnit(Unit unit, boolean selected){
         boolean friendly = false;
         if(unit.getOwner().equals(username)){
             friendly = true;
         }
-        ImageView image = (ImageView) findViewById(unit.getMapID() + mapSize);
+        HexagonMaskView image = getImage(unit.getMapID());
+        int unitDrawableID = -1;
         switch(unit.getUnitID()){
             case 1: //archer
                 if(friendly && selected)
-                    image.setImageResource(R.drawable.archer_friendly_selected);
+                    unitDrawableID = R.drawable.archer_friendly_selected;
                 else if(friendly)
-                    image.setImageResource(R.drawable.archer_friendly);
+                    unitDrawableID = R.drawable.archer_friendly;
                 else if(selected)
-                    image.setImageResource(R.drawable.archer_hostile_selected);
+                    unitDrawableID = R.drawable.archer_hostile_selected;
                 else
-                    image.setImageResource(R.drawable.archer_hostile);
+                    unitDrawableID = R.drawable.archer_hostile;
                 break;
             case 2: //cavalry
                 if(friendly && selected)
-                    image.setImageResource(R.drawable.cavalry_friendly_selected);
+                    unitDrawableID = R.drawable.cavalry_friendly_selected;
                 else if(friendly)
-                    image.setImageResource(R.drawable.cavalry_friendly);
+                    unitDrawableID = R.drawable.cavalry_friendly;
                 else if(selected)
-                    image.setImageResource(R.drawable.cavalry_hostile_selected);
+                    unitDrawableID = R.drawable.cavalry_hostile_selected;
                 else
-                    image.setImageResource(R.drawable.cavalry_hostile);
+                    unitDrawableID = R.drawable.cavalry_hostile;
                 break;
             case 3: //swordsman
                 if(friendly && selected)
-                    image.setImageResource(R.drawable.sword_friendly_selected);
+                    unitDrawableID = R.drawable.sword_friendly_selected;
                 else if(friendly)
-                    image.setImageResource(R.drawable.sword_friendly);
+                    unitDrawableID = R.drawable.sword_friendly;
                 else if(selected)
-                    image.setImageResource(R.drawable.sword_hostile_selected);
+                    unitDrawableID = R.drawable.sword_hostile_selected;
                 else
-                    image.setImageResource(R.drawable.sword_hostile);
+                    unitDrawableID = R.drawable.sword_hostile;
                 break;
             case 4: //spearman
                 if(friendly && selected)
-                    image.setImageResource(R.drawable.spear_friendly_selected);
+                    unitDrawableID = R.drawable.spear_friendly_selected;
                 else if(friendly)
-                    image.setImageResource(R.drawable.spear_friendly);
+                    unitDrawableID = R.drawable.spear_friendly;
                 else if(selected)
-                    image.setImageResource(R.drawable.spear_hostile_selected);
+                    unitDrawableID = R.drawable.spear_hostile_selected;
                 else
-                    image.setImageResource(R.drawable.spear_hostile);
+                    unitDrawableID = R.drawable.spear_hostile;
                 break;
             case 5: //general
                 if(friendly && selected)
-                    image.setImageResource(R.drawable.general_friendly_selected);
+                    unitDrawableID = R.drawable.general_friendly_selected;
                 else if(friendly)
-                    image.setImageResource(R.drawable.general_friendly);
+                    unitDrawableID = R.drawable.general_friendly;
                 else if(selected)
-                    image.setImageResource(R.drawable.general_hostile_selected);
+                    unitDrawableID = R.drawable.general_hostile_selected;
                 else
-                    image.setImageResource(R.drawable.general_hostile);
+                    unitDrawableID = R.drawable.general_hostile;
                 break;
             default:
                 break;
         }
+        image.setForeground(getDrawable(unitDrawableID));
     }
 
     private void createUnit(int mapID, int unitID){
@@ -861,6 +846,19 @@ public class UI extends AppCompatActivity {
         }
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
+
+    @Override
+    public void onBackPressed(){
+        if(player instanceof InactivePlayer){
+            ((InactivePlayer) player).killPoll();
+        }
+        Intent intent = new Intent(getApplicationContext(), com.example.bakes.login_menu.Menu.class);
+        intent.putExtra("username", username);
+        intent.putExtra("message", "leftGame");
+        startActivity(intent);
+        finish();
+    }
+
     @Override
     public void onDestroy(){
         Log.d("UI Destroy", "destroy called");
