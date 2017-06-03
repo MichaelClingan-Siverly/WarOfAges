@@ -149,11 +149,6 @@ public class UIAdmin extends AppCompatActivity {
         Button b = (Button) findViewById(R.id.confirm);
         b.setText("Send");
         b.setOnClickListener(editMapClicks);
-        //add buttons to onClickListener(zoom in and zoom out)
-        b = (Button)findViewById(R.id.zoomIn);
-        b.setOnClickListener(editMapClicks);
-        b = (Button)findViewById(R.id.zoomOut);
-        b.setOnClickListener(editMapClicks);
 
         //Getting the outer layout from the xml
         LinearLayout mapLayout = (LinearLayout) findViewById(R.id.mapMakerLayout);
@@ -243,15 +238,22 @@ public class UIAdmin extends AppCompatActivity {
         column.setLayoutParams(params);
     }
 
-    private void zoomClick(int vID){
+
+    public void zoomClick(View v){
         boolean changed = false;
-        if(vID == R.id.zoomIn && tileSize < 500) {
-            tileSize += 100;
-            changed = true;
-        }
-        else if(vID == R.id.zoomOut && tileSize > 100) {
-            tileSize -= 100;
-            changed = true;
+        switch (v.getId()){
+            case R.id.mapMakerZoomIn:
+                if(tileSize < 500) {
+                    tileSize += 100;
+                    changed = true;
+                }
+                break;
+            case R.id.mapMakerZoomOut:
+                if(tileSize > 100) {
+                    tileSize -= 100;
+                    changed = true;
+                }
+                break;
         }
         if(changed){
             LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(tileSize, tileSize);
@@ -298,17 +300,13 @@ public class UIAdmin extends AppCompatActivity {
     View.OnClickListener editMapClicks = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            //zoom button clicked, so everything in grid needs resized
-            if(R.id.zoomIn == v.getId() || R.id.zoomOut == v.getId()) {
-                zoomClick(v.getId());
-            }
             //send button clicked
-            else if(R.id.confirm == v.getId()){
+            if(R.id.confirm == v.getId()){
                 sender.sendMap();
             }
             //map grid is clicked: find the ID of the tile to be changed
             else if(changing == -1){
-                ScrollView scroll = (ScrollView) findViewById(R.id.scroll);
+                ScrollView scroll = (ScrollView) findViewById(R.id.mapMakerScroll);
                 terrainPopup.showAtLocation(scroll, Gravity.TOP, 0, 500);
                 changing = v.getId();
             }

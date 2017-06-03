@@ -86,55 +86,57 @@ public class UI extends AppCompatActivity {
         //initialize scroller
         scroller = (ScrollView) findViewById(R.id.scroll);
 
-        //initialize terrainMap
-//        terrainMap = new ArrayList<>();
         unitVtown = -1;
 
         //Image selections of popup
-        ImageView image1;
-        ImageView image2;
-        ImageView image3;
-        ImageView image4;
-        ImageView image5;
+        ImageView image;
+
         //popup layout
         LinearLayout popLayout;
 
         //initialize townMenu window
         townMenu = new PopupWindow(this);
         popLayout = new LinearLayout(this);
-        image1 = new ImageView(this);
-        image2 = new ImageView(this);
-        image3 = new ImageView(this);
-        image4 = new ImageView(this);
-        image5 = new ImageView(this);
+        image = new ImageView(this);
         ViewGroup.LayoutParams layoutParams = new LinearLayout.LayoutParams(150, 150);
-        image1.setImageResource(R.drawable.move_icon);
-        image1.setId(MOVE_ICON_ID);
-        image1.setOnClickListener(onClickListener);
-        image2.setImageResource(R.drawable.archer_friendly);
-        image2.setId(ARCHER_ICON_ID);
-        image2.setOnClickListener(onClickListener);
-        image3.setImageResource(R.drawable.cavalry_friendly);
-        image3.setId(CAVALRY_ICON_ID);
-        image3.setOnClickListener(onClickListener);
-        image4.setImageResource(R.drawable.spear_friendly);
-        image4.setId(SPEAR_ICON_ID);
-        image4.setOnClickListener(onClickListener);
-        image5.setImageResource(R.drawable.sword_friendly);
-        image5.setId(SWORD_ICON_ID);
-        image5.setOnClickListener(onClickListener);
 
-        popLayout.addView(image1, layoutParams);
-        popLayout.addView(image2, layoutParams);
-        popLayout.addView(image3, layoutParams);
-        popLayout.addView(image4, layoutParams);
-        popLayout.addView(image5, layoutParams);
+        //TODO make this look nicer (loop or use an xml layout similar to map maker's size popup)
+        image.setImageResource(R.drawable.move_icon);
+        image.setId(MOVE_ICON_ID);
+        image.setOnClickListener(gameClickListener);
+        popLayout.addView(image, layoutParams);
+
+        image = new ImageView(this);
+        image.setImageResource(R.drawable.archer_friendly);
+        image.setId(ARCHER_ICON_ID);
+        image.setOnClickListener(gameClickListener);
+        popLayout.addView(image, layoutParams);
+
+        image = new ImageView(this);
+        image.setImageResource(R.drawable.cavalry_friendly);
+        image.setId(CAVALRY_ICON_ID);
+        image.setOnClickListener(gameClickListener);
+        popLayout.addView(image, layoutParams);
+
+        image = new ImageView(this);
+        image.setImageResource(R.drawable.spear_friendly);
+        image.setId(SPEAR_ICON_ID);
+        image.setOnClickListener(gameClickListener);
+        popLayout.addView(image, layoutParams);
+
+        image = new ImageView(this);
+        image.setImageResource(R.drawable.sword_friendly);
+        image.setId(SWORD_ICON_ID);
+        image.setOnClickListener(gameClickListener);
+        popLayout.addView(image, layoutParams);
+
         townMenu.setContentView(popLayout);
         //The menu didn't show up on mobile devices (worked on emulator though). fixed by http://stackoverflow.com/a/39363218
         townMenu.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
         townMenu.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
         townMenu.getBackground().setAlpha(102); //40% opaque
 
+        //TODO figure out what this popup does - why is there a popup just showing the turn is over?
         //initialize end popup window
         endMenu = new PopupWindow(this);
         popLayout = new LinearLayout(this);
@@ -149,13 +151,7 @@ public class UI extends AppCompatActivity {
         //I didn't like how ugly the black box is
         endMenu.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
 
-        //add buttons to onClickListener(zoom in and zoom out)
-        Button b = (Button)findViewById(R.id.B1);
-        b.setOnClickListener(onClickListener);
-        b = (Button)findViewById(R.id.B2);
-        b.setOnClickListener(onClickListener);
-        b = (Button)findViewById(R.id.B3);
-        b.setOnClickListener(onClickListener);
+        //set a click listener for zoomIn/zoomOut/endTurn buttons in the xml
 
         getTerrain();
 
@@ -218,7 +214,7 @@ public class UI extends AppCompatActivity {
             column.addView(image);
 
             //he had a separate method just for this, which is odd since it always adds the same image
-            image.setOnClickListener(onClickListener);
+            image.setOnClickListener(gameClickListener);
         }
     }
 
@@ -349,6 +345,7 @@ public class UI extends AppCompatActivity {
         terrainMap[id] = terrain;
     }
 
+    //TODO check if this is even worth it: If looping through all map locations, the repeated division and object creation may be slower
     HexagonMaskView getImage(int mapID){
         int mapRoot = (int)Math.sqrt(mapSize);
         int x = mapID / mapRoot;
@@ -405,48 +402,66 @@ public class UI extends AppCompatActivity {
             gameOn = false;
             setInfoBar(end);
         }
+    }
 
+    public void bottomBarListener(View v){
+        boolean resized = false;
+        switch (v.getId()){
+            case R.id.endTurn:
+                if(gameOn){
+                    endTurn();
+                    return;
+                }
+                else{
+                    String end = player.endgame();
+                    setInfoBar(end);
+                }
+                break;
+            case R.id.zoomIn:
+                if(tileSize < 500) {
+                    tileSize += 100;
+                    resized = true;
+                }
+                break;
+            case R.id.zoomOut:
+                if(tileSize > 100) {
+                    tileSize -= 100;
+                    resized = true;
+                }
+                break;
+        }
+        if(resized){
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(tileSize, tileSize);
+            for (int id = 0; id < mapSize; id++) {
+                HexagonMaskView image = getImage(id);
+                image.setLayoutParams(params);
+            }
+            //loop through all columns after the first and adjust their parameters
+            LinearLayout rootLayout = (LinearLayout) findViewById(R.id.mapMakerLayout);
+            LinearLayout column;
+            //number of columns = number of rows, since I only make square maps, so I can use count as rowLength
+            int count = rootLayout.getChildCount();
 
-
+            for (int i = 1; i < count; i++) {
+                column = (LinearLayout)rootLayout.getChildAt(i);
+                if(i % 2 == 1)
+                    adjustColumnParams(column, count, false);
+                else
+                    adjustColumnParams(column, count, true);
+            }
+        }
     }
 
     //processes clicks
-    View.OnClickListener onClickListener = new View.OnClickListener() {
+    View.OnClickListener gameClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v){
             if(gameOn) {
                 int vID = v.getId();
                 //increases size of map when clicked button is increase size button
-                if (R.id.B1 == v.getId()) {
-                    tileSize += 100;
-                    //loops through entire map by getting their imageviews from the ids
-                    for (int id = 0; id < mapSize; id++) {
-                        ImageView image = (ImageView) findViewById(id);
-
-                        //sets sizes to size variable increased by 100
-                        TableRow.LayoutParams parms = new TableRow.LayoutParams(tileSize, tileSize);
-                        image.setLayoutParams(parms);
-                        image = (ImageView) findViewById(id + mapSize);
-                        image.setLayoutParams(parms);
-                    }
-                }//decreases size of map when button clicked is decrease size button
-                else if (R.id.B2 == v.getId()) {
-                    if (tileSize > 100) {
-                        tileSize -= 100;
-                    }
-                    //loops through entire map by getting their imageviews from the ids
-                    for (int id = 0; id < mapSize; id++) {
-                        ImageView image = (ImageView) findViewById(id);
-
-                        //sets sizes to size variable decreased by 100 (min of 100)
-                        TableRow.LayoutParams parms = new TableRow.LayoutParams(tileSize, tileSize);
-                        image.setLayoutParams(parms);
-                        image = (ImageView) findViewById(id + mapSize);
-                        image.setLayoutParams(parms);
-                    }
-                } else if (player instanceof ActivePlayer) {
+                 if (player instanceof ActivePlayer) {
                     //end turn button
-                    if ((R.id.B3 == v.getId()) && (player instanceof ActivePlayer)) {
+                    if ((R.id.endTurn == v.getId()) && (player instanceof ActivePlayer)) {
                         endTurn();
                         return;
                     }

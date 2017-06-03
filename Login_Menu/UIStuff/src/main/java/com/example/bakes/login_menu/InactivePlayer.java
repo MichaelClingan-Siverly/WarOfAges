@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 import android.view.Gravity;
+import android.widget.ScrollView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -132,13 +133,15 @@ public class InactivePlayer extends Player {
         String nameOne = "one";
         boolean isSpectator = false;
         if(!myUnits.isEmpty()){
-            return isSpectator;
+            return false;
         }
         for(int i = 0; i < enemyUnits.size(); i++){
             if(i == 0){
                 nameOne = enemyUnits.get(i).getOwner();
             }
             else if(!enemyUnits.get(i).getOwner().equals(nameOne)){
+                //I don't return here because it also separated armies if I am one.
+                //no need to possibly iterate through n-1 units to separate them later
                 isSpectator = true;
                 int mapID = enemyUnits.get(i).getMapID();
                 int unitID = enemyUnits.get(i).getUnitID();

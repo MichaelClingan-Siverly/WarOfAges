@@ -1,1 +1,1 @@
-include ':UIStuff', ':clientComm', ':units', ':mapmaker'
+include ':UIStuff', ':clientComm', ':units', ':mapmaker', ':gamebackend'

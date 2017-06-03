@@ -47,19 +47,22 @@
             android:layout_height="fill_parent"
             android:layout_weight="30"
             android:text="@string/LeftButton"
-            android:id="@+id/B1"/>
+            android:onClick="bottomBarListener"
+            android:id="@+id/zoomIn"/>
         <Button
             android:layout_width="0dp"
             android:layout_height="fill_parent"
             android:layout_weight="30"
             android:text="End Turn"
-            android:id="@+id/B3"/>
+            android:onClick="bottomBarListener"
+            android:id="@+id/endTurn"/>
         <Button
             android:layout_width="0dp"
             android:layout_height="fill_parent"
             android:layout_weight="30"
             android:text="@string/RightButton"
-            android:id="@+id/B2"/>
+            android:onClick="bottomBarListener"
+            android:id="@+id/zoomOut"/>
     </LinearLayout>
 
 </LinearLayout>

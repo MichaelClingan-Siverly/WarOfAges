@@ -10,7 +10,7 @@
         android:layout_height="0dp"
         android:layout_weight="90"
         android:scrollbars="vertical"
-        android:id="@+id/scroll">
+        android:id="@+id/mapMakerScroll">
 
         <HorizontalScrollView
             android:layout_width="match_parent"
@@ -36,7 +36,8 @@
             android:layout_height="fill_parent"
             android:layout_weight="30"
             android:text="@string/LeftButton"
-            android:id="@+id/zoomIn"/>
+            android:onClick="zoomClick"
+            android:id="@+id/mapMakerZoomIn"/>
         <Button
             style="android:attr/buttonBarStyle"
             android:layout_width="0dp"
@@ -50,6 +51,7 @@
             android:layout_height="fill_parent"
             android:layout_weight="30"
             android:text="@string/RightButton"
-            android:id="@+id/zoomOut"/>
+            android:onClick="zoomClick"
+            android:id="@+id/mapMakerZoomOut"/>
     </LinearLayout>
 </LinearLayout>
