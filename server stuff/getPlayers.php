@@ -31,7 +31,7 @@ if(mysqli_num_rows($result)>0){
                 //player one not logged in
                 $sql = "UPDATE users SET player = 0, playerOrder = 1 WHERE userID like '".$userID."'";
                 mysqli_query($con,$sql);
-                $sql = "UPDATE UnitMap SET userID = '".$userID."' WHERE GridID = 0";
+                $sql = "UPDATE UnitMap SET userID = '".$userID."' WHERE GridID in (SELECT GridID FROM AdminMap WHERE AreaType = 'town_friendly_start')";
                 mysqli_query($con,$sql);
                 $code = "player 1 assigned";
 }
@@ -40,7 +40,7 @@ if(mysqli_num_rows($result)>0){
                 $sql = "UPDATE users SET player = 1, playerOrder = 2 WHERE loggedIn = 1 AND userID like '".$userID."'";
                 $result = mysqli_query($con,$sql);
                 //I'm not sure where the end of the map is, so I just check for any unit other than at gridID 0
-                $sql = "UPDATE UnitMap SET userID = '".$userID."' WHERE GridID > 0";
+                $sql = "UPDATE UnitMap SET userID = '".$userID."' WHERE GridID in (SELECT GridID FROM AdminMap WHERE AreaType = 'town_hostile_start')";
                 $result = mysqli_query($con,$sql);
                 $code = "player 2 assigned";
         }

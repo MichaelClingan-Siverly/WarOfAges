@@ -6,7 +6,7 @@ package coms309.mike.units;
 
 public class General extends Unit {
 
-    public General(int unitID, int mapID,String ownerID, double health){
+    public General(int mapID, int unitID, String ownerID, double health){
         super(mapID, unitID, ownerID,5,health,125, 0.8);
     }
 

@@ -6,7 +6,7 @@ package coms309.mike.units;
 
 public class Swordsman extends Unit {
 
-    public Swordsman(int unitID, int mapID, String ownerID, double health){
+    public Swordsman(int mapID, int unitID, String ownerID, double health){
         super(mapID, unitID, ownerID,2,health,50, 0.5);
     }
 

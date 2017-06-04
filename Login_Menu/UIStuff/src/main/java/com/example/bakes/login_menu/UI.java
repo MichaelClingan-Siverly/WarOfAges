@@ -687,7 +687,6 @@ public class UI extends AppCompatActivity {
         if(unit.getOwner().equals(username)){
             friendly = true;
         }
-        HexagonMaskView image = getImage(unit.getMapID());
         int unitDrawableID = -1;
         switch(unit.getUnitID()){
             case 1: //archer
@@ -743,6 +742,8 @@ public class UI extends AppCompatActivity {
             default:
                 break;
         }
+
+        HexagonMaskView image = getImage(unit.getMapID());
         image.setForeground(getDrawable(unitDrawableID));
     }
 

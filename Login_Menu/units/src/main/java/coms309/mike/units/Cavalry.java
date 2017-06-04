@@ -7,7 +7,7 @@ package coms309.mike.units;
 
 public class Cavalry extends Unit {
 
-    public Cavalry(int unitID, int mapID, String ownerID, double health){
+    public Cavalry(int mapID, int unitID, String ownerID, double health){
         super(mapID, unitID, ownerID,4,health,100, 0.35);
     }
 
