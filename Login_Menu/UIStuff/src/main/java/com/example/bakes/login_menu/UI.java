@@ -2,23 +2,17 @@ package com.example.bakes.login_menu;
 
 import android.content.Intent;
 import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.LayerDrawable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.ScrollView;
-import android.widget.TableLayout;
-import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -26,6 +20,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -42,10 +37,6 @@ public class UI extends AppCompatActivity {
     boolean movedToOtherIntent = false;
 
     private final int MOVE_ICON_ID = 10000;
-    private final int ARCHER_ICON_ID = 10001;
-    private final int CAVALRY_ICON_ID = 10002;
-    private final int SPEAR_ICON_ID = 10003;
-    private final int SWORD_ICON_ID = 10004;
 
     //The number of squares in the map. Needs clean squareroot
     static int mapSize = 100;
@@ -88,60 +79,19 @@ public class UI extends AppCompatActivity {
 
         unitVtown = -1;
 
-        //Image selections of popup
-        ImageView image;
+        makeTownMenu();
+        makeEndMenu();
 
-        //popup layout
-        LinearLayout popLayout;
+        getTerrain();
+    }
 
-        //initialize townMenu window
-        townMenu = new PopupWindow(this);
-        popLayout = new LinearLayout(this);
-        image = new ImageView(this);
-        ViewGroup.LayoutParams layoutParams = new LinearLayout.LayoutParams(150, 150);
-
-        //TODO make this look nicer (loop or use an xml layout similar to map maker's size popup)
-        image.setImageResource(R.drawable.move_icon);
-        image.setId(MOVE_ICON_ID);
-        image.setOnClickListener(gameClickListener);
-        popLayout.addView(image, layoutParams);
-
-        image = new ImageView(this);
-        image.setImageResource(R.drawable.archer_friendly);
-        image.setId(ARCHER_ICON_ID);
-        image.setOnClickListener(gameClickListener);
-        popLayout.addView(image, layoutParams);
-
-        image = new ImageView(this);
-        image.setImageResource(R.drawable.cavalry_friendly);
-        image.setId(CAVALRY_ICON_ID);
-        image.setOnClickListener(gameClickListener);
-        popLayout.addView(image, layoutParams);
-
-        image = new ImageView(this);
-        image.setImageResource(R.drawable.spear_friendly);
-        image.setId(SPEAR_ICON_ID);
-        image.setOnClickListener(gameClickListener);
-        popLayout.addView(image, layoutParams);
-
-        image = new ImageView(this);
-        image.setImageResource(R.drawable.sword_friendly);
-        image.setId(SWORD_ICON_ID);
-        image.setOnClickListener(gameClickListener);
-        popLayout.addView(image, layoutParams);
-
-        townMenu.setContentView(popLayout);
-        //The menu didn't show up on mobile devices (worked on emulator though). fixed by http://stackoverflow.com/a/39363218
-        townMenu.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
-        townMenu.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
-        townMenu.getBackground().setAlpha(102); //40% opaque
-
-        //TODO figure out what this popup does - why is there a popup just showing the turn is over?
-        //initialize end popup window
+    //TODO figure out what this popup does - why is there a popup just showing the turn is over?
+    //initialize end popup window
+    private void makeEndMenu(){
         endMenu = new PopupWindow(this);
-        popLayout = new LinearLayout(this);
+        LinearLayout popLayout = new LinearLayout(this);
         endText = new TextView(this);
-        layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         endText.setText("Turn over");
         popLayout.addView(endText, layoutParams);
@@ -150,13 +100,45 @@ public class UI extends AppCompatActivity {
         endMenu.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
         //I didn't like how ugly the black box is
         endMenu.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+    }
 
-        //set a click listener for zoomIn/zoomOut/endTurn buttons in the xml
+    //initialize townMenu window
+    private void makeTownMenu(){
+        townMenu = new PopupWindow(this);
+        LinearLayout popLayout = new LinearLayout(this);
+        ImageView image;
+        ViewGroup.LayoutParams layoutParams = new LinearLayout.LayoutParams(150, 150);
+        ArrayList<Integer> icons = findTownMenuIDs();
 
-        getTerrain();
+        for(int i = 0; i < icons.size(); i++){
+            image = new ImageView(this);
+            image.setImageResource(icons.get(i));
+            image.setImageResource(MOVE_ICON_ID + i);
+            image.setOnClickListener(gameClickListener);
+            popLayout.addView(image, layoutParams);
+        }
+        townMenu.setContentView(popLayout);
+        //The menu didn't show up on mobile devices (worked on emulator though). fixed by http://stackoverflow.com/a/39363218
+        townMenu.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
+        townMenu.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
+        townMenu.getBackground().setAlpha(102); //40% opaque
+    }
 
+    private ArrayList<Integer> findTownMenuIDs(){
+        ArrayList<Integer> unitIDs = new ArrayList<>();
+        unitIDs.add(R.drawable.move_icon);
+        Field[] fields = R.drawable.class.getFields();
+        for(Field field : fields){
+            if(field.getName().endsWith("friendly")){
+                try {
+                    unitIDs.add(field.getInt(null));
+                }
+                catch(IllegalAccessException e){
 
-
+                }
+            }
+        }
+        return unitIDs;
     }
 
     private void finishSettingUp(){
@@ -275,6 +257,7 @@ public class UI extends AppCompatActivity {
                             tID++;
                         }
                         scan.close();
+                        //continues here because Volley is asynchronous and I want to wait until its done
                         finishSettingUp();
                     }
 
@@ -345,7 +328,6 @@ public class UI extends AppCompatActivity {
         terrainMap[id] = terrain;
     }
 
-    //TODO check if this is even worth it: If looping through all map locations, the repeated division and object creation may be slower
     HexagonMaskView getImage(int mapID){
         int mapRoot = (int)Math.sqrt(mapSize);
         int x = mapID / mapRoot;
@@ -457,7 +439,6 @@ public class UI extends AppCompatActivity {
         @Override
         public void onClick(View v){
             if(gameOn) {
-                int vID = v.getId();
                 //increases size of map when clicked button is increase size button
                  if (player instanceof ActivePlayer) {
                     //end turn button
@@ -711,53 +692,53 @@ public class UI extends AppCompatActivity {
         switch(unit.getUnitID()){
             case 1: //archer
                 if(friendly && selected)
-                    unitDrawableID = R.drawable.archer_friendly_selected;
+                    unitDrawableID = R.drawable.unit_archer_friendly_selected;
                 else if(friendly)
-                    unitDrawableID = R.drawable.archer_friendly;
+                    unitDrawableID = R.drawable.unit_archer_friendly;
                 else if(selected)
-                    unitDrawableID = R.drawable.archer_hostile_selected;
+                    unitDrawableID = R.drawable.unit_archer_hostile_selected;
                 else
-                    unitDrawableID = R.drawable.archer_hostile;
+                    unitDrawableID = R.drawable.unit_archer_hostile;
                 break;
             case 2: //cavalry
                 if(friendly && selected)
-                    unitDrawableID = R.drawable.cavalry_friendly_selected;
+                    unitDrawableID = R.drawable.unit_cavalry_friendly_selected;
                 else if(friendly)
-                    unitDrawableID = R.drawable.cavalry_friendly;
+                    unitDrawableID = R.drawable.unit_cavalry_friendly;
                 else if(selected)
-                    unitDrawableID = R.drawable.cavalry_hostile_selected;
+                    unitDrawableID = R.drawable.unit_cavalry_hostile_selected;
                 else
-                    unitDrawableID = R.drawable.cavalry_hostile;
+                    unitDrawableID = R.drawable.unit_cavalry_hostile;
                 break;
             case 3: //swordsman
                 if(friendly && selected)
-                    unitDrawableID = R.drawable.sword_friendly_selected;
+                    unitDrawableID = R.drawable.unit_sword_friendly_selected;
                 else if(friendly)
-                    unitDrawableID = R.drawable.sword_friendly;
+                    unitDrawableID = R.drawable.unit_sword_friendly;
                 else if(selected)
-                    unitDrawableID = R.drawable.sword_hostile_selected;
+                    unitDrawableID = R.drawable.unit_sword_hostile_selected;
                 else
-                    unitDrawableID = R.drawable.sword_hostile;
+                    unitDrawableID = R.drawable.unit_sword_hostile;
                 break;
             case 4: //spearman
                 if(friendly && selected)
-                    unitDrawableID = R.drawable.spear_friendly_selected;
+                    unitDrawableID = R.drawable.unit_spear_friendly_selected;
                 else if(friendly)
-                    unitDrawableID = R.drawable.spear_friendly;
+                    unitDrawableID = R.drawable.unit_spear_friendly;
                 else if(selected)
-                    unitDrawableID = R.drawable.spear_hostile_selected;
+                    unitDrawableID = R.drawable.unit_spear_hostile_selected;
                 else
-                    unitDrawableID = R.drawable.spear_hostile;
+                    unitDrawableID = R.drawable.unit_spear_hostile;
                 break;
             case 5: //general
                 if(friendly && selected)
-                    unitDrawableID = R.drawable.general_friendly_selected;
+                    unitDrawableID = R.drawable.unit_general_friendly_selected;
                 else if(friendly)
-                    unitDrawableID = R.drawable.general_friendly;
+                    unitDrawableID = R.drawable.unit_general_friendly;
                 else if(selected)
-                    unitDrawableID = R.drawable.general_hostile_selected;
+                    unitDrawableID = R.drawable.unit_general_hostile_selected;
                 else
-                    unitDrawableID = R.drawable.general_hostile;
+                    unitDrawableID = R.drawable.unit_general_hostile;
                 break;
             default:
                 break;
@@ -769,7 +750,7 @@ public class UI extends AppCompatActivity {
         ClientComm comm = new ClientComm(getApplicationContext());
         // This doesnt really matter, as if a unit is actually made, it will be overritten,
         // but it keeps me from getting errors later
-        Unit newUnit = new Archer(mapID, unitID, username,2,300.0,66.66666, 0.10);
+        Unit newUnit = new Archer(mapID, unitID, username,300.0);
         boolean unitCreated = false;
         String message = "";
         int cost;
@@ -778,7 +759,7 @@ public class UI extends AppCompatActivity {
                 cost = 100;
                 if(cash >= cost) {
                     cash -= cost;
-                    newUnit = new Archer(mapID, unitID, username,2,300.0,66.66666, 0.10);
+                    newUnit = new Archer(mapID, unitID, username,300.0);
                     unitCreated = true;
                     message = "Archer";
                 }
@@ -787,7 +768,7 @@ public class UI extends AppCompatActivity {
                 cost = 250;
                 if(cash >= cost) {
                     cash -= cost;
-                    newUnit = new Cavalry(mapID, unitID, username,4,900.0,100, 0.35);
+                    newUnit = new Cavalry(mapID, unitID, username,900.0);
                     unitCreated = true;
                     message = "Cavalry";
                 }
@@ -796,7 +777,7 @@ public class UI extends AppCompatActivity {
                 cost = 150;
                 if(cash >= cost) {
                     cash -= cost;
-                    newUnit = new Swordsman(mapID, unitID, username,2,600.0,50,0.5);
+                    newUnit = new Swordsman(mapID, unitID, username,600.0);
                     unitCreated = true;
                     message = "Swordsman";
                 }
@@ -805,7 +786,7 @@ public class UI extends AppCompatActivity {
                 cost = 200;
                 if(cash >= cost) {
                     cash -= cost;
-                    newUnit = new Spearman(mapID, unitID, username,1,450.0,58.333333,0.70);
+                    newUnit = new Spearman(mapID, unitID, username,450.0);
                     unitCreated = true;
                     message = "spearman";
                 }
@@ -815,7 +796,7 @@ public class UI extends AppCompatActivity {
                 if(cash >= cost) {
                     cash -= cost;
                     unitCreated = true;
-                    newUnit = new General(mapID, unitID, username,5,2000.0,125,.8);
+                    newUnit = new General(mapID, unitID, username,2000.0);
                     message = "General";
                 }
                 break;
@@ -896,7 +877,8 @@ public class UI extends AppCompatActivity {
 //        player.setCash(oldCashAmount);
 //        player.cash = oldCashAmount + player.incrementCash(terrainMap);
 //        player.setCash(oldCashAmount + player.incrementCash(terrainMap));
-        cash += player.incrementCash(terrainMap);
+        //TODO crashed when incrementCash was called - haven't updated that stuff yet
+//        cash += player.incrementCash(terrainMap);
         setInfoBar("Cash: " + cash);
     }
 }

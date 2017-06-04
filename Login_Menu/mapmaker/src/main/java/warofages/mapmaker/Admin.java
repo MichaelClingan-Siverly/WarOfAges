@@ -31,7 +31,6 @@ public class Admin extends AppCompatActivity{
 
     public Admin(Context context){
         this.context=context;
-//        initMap(rootOfMapSize);
     }
 
     public void initMap(int rootOfMapSize){
@@ -61,7 +60,8 @@ public class Admin extends AppCompatActivity{
         return mapSize;
     }
 
-    public void addTile(String terrain){
+    public int addTile(int index){
+        String terrain = tiles.get(index).tupleName;
         //length of array is constant, but I only want to sell a full array
         if(terrainMap[changingIndex] == null)
             countLength++;
@@ -77,11 +77,12 @@ public class Admin extends AppCompatActivity{
         else if(terrain.equals("town_hostile_start"))
             p2Capital = true;
         terrainMap[changingIndex] = terrain;
+        return tiles.get(index).ID;
     }
 
     /*
-    *  a small container class used when creating tiles or giving them to the sender
-    */
+     *  a small container class used when creating tiles or giving them to the sender
+     */
     private class tileTuple{
         int ID;
         String tupleName;
@@ -110,9 +111,6 @@ public class Admin extends AppCompatActivity{
     }
     public int getTileID(int index){
         return tiles.get(index).ID;
-    }
-    public String getTileName(int index){
-        return tiles.get(index).tupleName;
     }
 
     public void sendMap(){

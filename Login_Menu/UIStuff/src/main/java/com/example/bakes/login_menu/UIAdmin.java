@@ -24,7 +24,6 @@ import warofages.mapmaker.Admin;
 
 public class UIAdmin extends AppCompatActivity {
     final int OFFSET = 10000;
-
     boolean movedToOtherIntent = false;
     //size of the map tiles
     int tileSize = 100;
@@ -55,9 +54,6 @@ public class UIAdmin extends AppCompatActivity {
             }
         });
     }
-
-
-
 
     private void buildSizeDialog(){
         /*
@@ -255,14 +251,10 @@ public class UIAdmin extends AppCompatActivity {
         if(index >= sender.getNumTiles() || index < 0)
             return;
 
-//        tileTuple tile = tiles.get(index);
-        int resId = sender.getTileID(index);
-        String terrainName = sender.getTileName(index);
-        sender.addTile(terrainName);
-
+        int resID = sender.addTile(index);
         //updates the terrain that was selected to be changed
         ImageView toChange = (ImageView) findViewById(sender.getChangingIndex());
-        toChange.setImageResource(resId);
+        toChange.setImageResource(resID);
     }
 
     //processes clicks (after size is selected)

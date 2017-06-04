@@ -115,6 +115,7 @@ public class InactivePlayer extends Player {
 
                 //all whatever I need to display the changes to unit positions. the execute below will call this
                 ui.clearMap();
+                //TODO crashes shortly after this
                 ui.updateUnits(myUnits,true);
                 ui.updateUnits(enemyUnits, false);
             }
@@ -235,19 +236,19 @@ public class InactivePlayer extends Player {
     private void addUnit(ArrayList<Unit> army, String owner, int mapID, int unitID, double unitHealth){
         switch(unitID){
             case 1:
-                army.add(new Archer(mapID, unitID, owner,2,unitHealth,66.66666, 0.10));
+                army.add(new Archer(mapID, unitID, owner,unitHealth));
                 break;
             case 2:
-                army.add(new Cavalry(mapID, unitID, owner,4,unitHealth,100, 0.35));
+                army.add(new Cavalry(mapID, unitID, owner,unitHealth));
                 break;
             case 3:
-                army.add(new Swordsman(mapID, unitID, owner,2,unitHealth,50,0.5));
+                army.add(new Swordsman(mapID, unitID, owner,unitHealth));
                 break;
             case 4:
-                army.add(new Spearman(mapID, unitID, owner,1,unitHealth,58.333333,0.70));
+                army.add(new Spearman(mapID, unitID, owner,unitHealth));
                 break;
             case 5:
-                army.add(new General(mapID, unitID, owner,5,unitHealth,125,.8));
+                army.add(new General(mapID, unitID, owner,unitHealth));
                 break;
             default:
                 break;

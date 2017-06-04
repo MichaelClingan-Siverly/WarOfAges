@@ -30,9 +30,11 @@ public abstract class Player {
     public void setCash(int newCashAmount){
         cash = newCashAmount;
     }
+
     public int getCash(){
         return cash;
     }
+
     public int incrementCash(int terrainMap[]){
         int addCash = 50; //even with no towns, players gain a base amount of 50
         for(int i = 0; i < myUnits.size(); i++){

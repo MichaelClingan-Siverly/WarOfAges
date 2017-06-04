@@ -6,8 +6,8 @@ package coms309.mike.units;
 
 public class Spearman extends Unit {
 
-    public Spearman(int unitID, int mapID, String ownerID, int moveSpeed, double health,double attack, double defense){
-        super(unitID, mapID, ownerID,moveSpeed, health,attack, defense);
+    public Spearman(int unitID, int mapID, String ownerID, double health){
+        super(mapID, unitID, ownerID,1,health,58.333333, 0.7);
     }
 
 
