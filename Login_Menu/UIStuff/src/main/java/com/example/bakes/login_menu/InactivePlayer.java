@@ -56,7 +56,7 @@ public class InactivePlayer extends Player implements AsyncResponse{
     }
     private void createPoll(){
         //this is performed asynchronously, but the finishProcess part is not async
-        poll = new PollServerTask(playerAndUnits, (AsyncResponse)ui);
+        poll = new PollServerTask(playerAndUnits, this);
     }
 
     public void killPoll(){
@@ -258,6 +258,6 @@ public class InactivePlayer extends Player implements AsyncResponse{
 //        ui.clearMap();
 //        ui.updateUnits(myUnits,true);
 //        ui.updateUnits(enemyUnits, false);
-
+        ui.showStuff(playerAndUnits);
     }
 }

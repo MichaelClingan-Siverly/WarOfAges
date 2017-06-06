@@ -26,6 +26,7 @@ public abstract class Player {
     public Player(Context context, String myName, AsyncResponse ui){
         this.context = context;
         this.myName = myName;
+        this.ui = ui;
         myUnits = new ArrayList<>();
         enemyUnits = new ArrayList<>();
     }

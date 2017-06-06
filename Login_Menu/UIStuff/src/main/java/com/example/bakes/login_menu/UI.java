@@ -844,7 +844,7 @@ public class UI extends AppCompatActivity implements AsyncResponse{
             });
         }
         else{
-            message = "You do now have enough cash.";
+            message = "You do not have enough cash.";
         }
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
