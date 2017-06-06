@@ -3,8 +3,10 @@ package com.example.bakes.login_menu;
 import android.content.Context;
 
 import java.util.ArrayList;
+import java.util.Observable;
 
 import coms309.mike.units.Unit;
+import warofages.gamebackend.AsyncResponse;
 
 /**
  * Created by Mike on 10/29/2016.
@@ -17,10 +19,11 @@ public abstract class Player {
     protected ArrayList<Unit> enemyUnits;
     protected String myName = "a player has no name";
     protected Context context;
+    protected AsyncResponse ui;
     public static int cash = 0;
 
     //I need whatever context this player is in. used for the ClientComm stuff
-    public Player(Context context, String myName){
+    public Player(Context context, String myName, AsyncResponse ui){
         this.context = context;
         this.myName = myName;
         myUnits = new ArrayList<>();

@@ -7,9 +7,14 @@ package warofages.gamebackend;
 public class Town {
     private int mapID;
     private String owner;
+
     public Town(int mapID){
         this.mapID = mapID;
         owner = "neutral";
+    }
+    public Town(int mapID, String owner){
+        this.mapID = mapID;
+        this.owner = owner;
     }
 
     public void setOwner(String userID){

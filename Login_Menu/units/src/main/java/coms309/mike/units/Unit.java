@@ -1,8 +1,6 @@
 package coms309.mike.units;
 
 
-import java.util.Random;
-
 public abstract class Unit {
     private int mapID;
     private int unitID;

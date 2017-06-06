@@ -26,4 +26,5 @@ dependencies {
     compile project(':clientComm')
     compile project(':mapmaker')
     compile project(':units')
+    compile project(path: ':gamebackend')
 }

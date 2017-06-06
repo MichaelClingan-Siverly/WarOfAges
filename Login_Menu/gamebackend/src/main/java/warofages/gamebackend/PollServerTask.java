@@ -1,4 +1,4 @@
-package com.example.bakes.login_menu;
+package warofages.gamebackend;
 
 import android.content.Context;
 import android.os.AsyncTask;
@@ -27,7 +27,7 @@ public class PollServerTask extends AsyncTask<Context, JSONArray, JSONArray> {
     private AsyncResponse receiver;
     String myName = "a player has no name";
 
-    PollServerTask(JSONArray myNameAndArmy, AsyncResponse callback){
+    public PollServerTask(JSONArray myNameAndArmy, AsyncResponse callback){
         this.myNameAndArmy = myNameAndArmy;
         receiver = callback;
     }
@@ -106,10 +106,5 @@ public class PollServerTask extends AsyncTask<Context, JSONArray, JSONArray> {
     protected void onCancelled(JSONArray result){
         Log.d("onCancelled", "AsyncTask cancelled");
 //        receiver.showStuff(result);
-    }
-
-    //Basically a callback to return the response to whoever needs it
-    public interface AsyncResponse{
-        void showStuff(JSONArray result);
     }
 }

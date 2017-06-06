@@ -13,12 +13,15 @@ import java.util.Scanner;
 
 import coms309.mike.clientcomm.ClientComm;
 import coms309.mike.clientcomm.VolleyCallback;
+import warofages.gamebackend.AsyncResponse;
 
 
 /**
  * Created by Bakes on 10/31/16.
  */
 public class ActivePlayer extends Player {
+    AsyncResponse ui;
+
     public int moving=-1;
     public int movespeed;
     private double myattack;
@@ -31,11 +34,11 @@ public class ActivePlayer extends Player {
     private double stats[]= new double[3];
     private Random rand=new Random();
 
-    public ActivePlayer(Context context, String myName){
-        super(context, myName);
+    public ActivePlayer(Context context, String myName, AsyncResponse ui){
+        super(context, myName, ui);
     }
     public ActivePlayer(Player oldPlayer){
-        super(oldPlayer.context, oldPlayer.myName);
+        super(oldPlayer.context, oldPlayer.myName, oldPlayer.ui);
         this.enemyUnits = oldPlayer.enemyUnits;
         this.myUnits = oldPlayer.myUnits;
         this.cash = oldPlayer.getCash();

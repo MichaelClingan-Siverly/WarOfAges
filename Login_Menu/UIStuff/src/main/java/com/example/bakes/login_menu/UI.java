@@ -22,6 +22,8 @@ import org.json.JSONObject;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Observable;
+import java.util.Observer;
 import java.util.Scanner;
 
 import coms309.mike.clientcomm.ClientComm;
@@ -32,10 +34,13 @@ import coms309.mike.units.General;
 import coms309.mike.units.Spearman;
 import coms309.mike.units.Swordsman;
 import coms309.mike.units.Unit;
+import warofages.gamebackend.AsyncResponse;
+import warofages.gamebackend.UIbackend;
 
-public class UI extends AppCompatActivity {
+public class UI extends AppCompatActivity implements AsyncResponse{
     boolean movedToOtherIntent = false;
 
+    private UIbackend uiBackend;
     private final int MOVE_ICON_ID = 10000;
 
     //The number of squares in the map. Needs clean squareroot
@@ -45,11 +50,11 @@ public class UI extends AppCompatActivity {
     //username
     String username = "";
     //current player
-    static Player player;
+    Player player;
     //list of my units.     Using until active player has move checking implimmented
-    static ArrayList<Unit> myArmy;
+    ArrayList<Unit> myArmy;
     //list of enemy units
-    static ArrayList<Unit> enemyArmy;
+    ArrayList<Unit> enemyArmy;
     //list of terrain locations
     int terrainMap[];
     int cash;
@@ -85,8 +90,7 @@ public class UI extends AppCompatActivity {
         getTerrain();
     }
 
-    //TODO figure out what this popup does - why is there a popup just showing the turn is over?
-    //initialize end popup window
+    //shows whose turn it is
     private void makeEndMenu(){
         endMenu = new PopupWindow(this);
         LinearLayout popLayout = new LinearLayout(this);
@@ -146,7 +150,7 @@ public class UI extends AppCompatActivity {
         Intent intent = getIntent();
         username = intent.getStringExtra("username");
 
-        player = new InactivePlayer(this.getApplicationContext(), username);
+        player = new InactivePlayer(username, getApplicationContext(), this);
         //players start game with 1000 cash
 //        player.setCash(1000);
         cash = 1000;
@@ -160,7 +164,7 @@ public class UI extends AppCompatActivity {
             getPlayers();
         }
 
-        ((InactivePlayer)player).waitForTurn(this);
+        ((InactivePlayer)player).waitForTurn();
     }
 
     //Create table of any size(must be square)
@@ -248,6 +252,7 @@ public class UI extends AppCompatActivity {
                         //get rid of key
                         Log.d("med", "map size: " +mapSize);
                         setButtons();
+                        uiBackend = new UIbackend();
                         terrainMap = new int[mapSize];
 
                         int tID = 0;
@@ -378,7 +383,7 @@ public class UI extends AppCompatActivity {
         if(end.equals("Game in Progress")){
             setInfoBar("Cash: " + cash);
             player = new InactivePlayer(player);
-            ((InactivePlayer)player).waitForTurn(this);
+            ((InactivePlayer)player).waitForTurn();
         }
         else{
             gameOn = false;
@@ -875,11 +880,52 @@ public class UI extends AppCompatActivity {
         info.setText(text);
     }
     public void beginTurnMakeMoney(){
-//        player.setCash(oldCashAmount);
+//        player.setCash(oldCashAmount + 50);
 //        player.cash = oldCashAmount + player.incrementCash(terrainMap);
 //        player.setCash(oldCashAmount + player.incrementCash(terrainMap));
         //TODO crashed when incrementCash was called - haven't updated that stuff yet
 //        cash += player.incrementCash(terrainMap);
         setInfoBar("Cash: " + cash);
+    }
+
+    @Override
+    public void showStuff(JSONArray result){
+        String activePlayerName;
+        try {
+            activePlayerName = result.getJSONObject(0).getString("userID");
+        }
+        catch(JSONException e){
+            activePlayerName = "null";
+        }
+
+        if(activePlayerName.equals(player.getName())) {
+            if (endMenu.isShowing()) {
+                endMenu.dismiss();
+            }
+            String end = player.endgame();
+            if (!end.equals("Game in Progress")) {
+                gameOn = false;
+            }
+            beginTurnMakeMoney();
+        }
+        else{
+            //                //set text of ui popup to show whose turn it is
+            if(activePlayerName.equals("null")){
+                endText.setText("Need additional player to start game");
+            }
+            else if(((InactivePlayer)player).isSpectator()){
+                endText.setText(activePlayerName + " is currently playing");
+            }
+            else {
+                endText.setText("It is " + activePlayerName + "'s turn.");
+            }
+            //popup cannot be activated directly inside UI. So, activating it here
+            endMenu.showAtLocation(scroller, Gravity.BOTTOM, 0, 400);
+        }
+        myArmy = player.getMyUnits();
+        enemyArmy = player.enemyUnits;
+        clearMap();
+        updateUnits(myArmy,true);
+        updateUnits(enemyArmy, false);
     }
 }

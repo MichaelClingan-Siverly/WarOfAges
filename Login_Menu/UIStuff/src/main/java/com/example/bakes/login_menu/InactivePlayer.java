@@ -1,10 +1,9 @@
 package com.example.bakes.login_menu;
 
+import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.util.Log;
 import android.view.Gravity;
-import android.widget.ScrollView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -17,131 +16,76 @@ import coms309.mike.units.General;
 import coms309.mike.units.Spearman;
 import coms309.mike.units.Swordsman;
 import coms309.mike.units.Unit;
+import warofages.gamebackend.AsyncResponse;
+import warofages.gamebackend.PollServerTask;
 
 /**
  * Created by Mike on 10/29/2016.
  */
 
-public class InactivePlayer extends Player {
+public class InactivePlayer extends Player implements AsyncResponse{
     //This array is compared to the results from the server.
     //I only have one inactive player at a time. NOTE: I did not make this a singleton, so that is not enforced in this class.
     static JSONArray playerAndUnits;
     private PollServerTask poll;
+    private boolean isSpectator = false;
 
-    public InactivePlayer(Context context, String myName){
+    public InactivePlayer(String myName, Context context,AsyncResponse ui){
         //First thing: construct the superclass.
-        super(context, myName);
+        super(context, myName, ui);
         playerAndUnits = new JSONArray();
     }
 
     public InactivePlayer(Player oldPlayer){
-        super(oldPlayer.context, oldPlayer.myName);
+        super(oldPlayer.context, oldPlayer.myName, oldPlayer.ui);
         this.enemyUnits = oldPlayer.enemyUnits;
         this.myUnits = oldPlayer.myUnits;
+        setCash(oldPlayer.getCash());
     }
 
     //UI isn't really final. It has static values which are changed inside. But it makes me say its final
-    public void waitForTurn(final UI ui) {
+    public void waitForTurn() {
         //initialize the static json array with json objects of units.
         convertToJson(myUnits, enemyUnits);
-        createPoll(ui);
+        createPoll();
         poll.execute(context);
         /*
             only finishes when I'm now the active player
             but it will still display changes due to the progressUpdate until then
         */
     }
-    private void createPoll(final UI ui){
+    private void createPoll(){
         //this is performed asynchronously, but the finishProcess part is not async
-        poll = new PollServerTask(playerAndUnits, new PollServerTask.AsyncResponse() {
-            @Override
-            public void showStuff(JSONArray result) {
-                Log.d("showStuff result", result.toString());
-                playerAndUnits = result;
-                myUnits = convertToArrayList(true);
-                enemyUnits = convertToArrayList(false);
-
-                try {
-                    //creates the active player originally attempted in UI after waitForTurn is called.
-                    //Having it here forces us to wait until I'm actually the active player before I become active
-                    if (result.getJSONObject(0).getString("userID").equals(myName)) {
-                        killPoll();
-                        Log.d("check showStuff result", "switching to ActivePlayer");
-                        if(ui.endMenu.isShowing()) {
-                            ui.endMenu.dismiss();
-                        }
-                        String  end = endgame();
-                        if(!end.equals("Game in Progress")){
-                            ui.gameOn = false;
-                        }
-//                       // players gain cash when they become active players
-                        int myCash = ui.player.getCash();
-                        ui.player = new ActivePlayer(ui.player);
-                        ui.player.setCash(myCash + 50);
-                        ui.beginTurnMakeMoney();
-
-                    }
-                    else{
-                        //set text of ui popup to show whose turn it is
-                        if(result.getJSONObject(0).getString("userID").equals("null")){
-                            ui.endText.setText("Need additional player to start game");
-                        }
-                        else if(checkIfSpectator()){
-                            ui.endText.setText(result.getJSONObject(0).getString("userID") + " is currently playing");
-                        }
-                        else {
-                            ui.endText.setText("It is " + result.getJSONObject(0).getString("userID") + "'s turn.");
-                        }
-                        //popup cannot be activated directly inside UI. So, activating it here
-                        ui.endMenu.showAtLocation(ui.scroller, Gravity.BOTTOM, 0, 400);
-                        //after copying, I need to replace the name, since it may not be mine.
-                        JSONObject needToReplaceName = new JSONObject();
-                        needToReplaceName.put("userID", myName);
-                        playerAndUnits.put(0, needToReplaceName);
-                    }
-                }
-                catch(JSONException e){
-                    Log.d("JSONException", e.toString());
-                }
-
-                //units update everytime a poll is answered
-                checkIfSpectator();
-
-                //Since I made the player, myArmy, and enemyArmy in the UI static, I'm able to change its values
-                ui.player.setMyUnits(myUnits);
-                ui.player.setEnemyUnits(enemyUnits);
-                ui.myArmy = getMyUnits();
-                ui.enemyArmy = getEnemyUnits();
-
-                //all whatever I need to display the changes to unit positions. the execute below will call this
-                ui.clearMap();
-                //TODO crashes shortly after this
-                ui.updateUnits(myUnits,true);
-                ui.updateUnits(enemyUnits, false);
-            }
-        });
+        poll = new PollServerTask(playerAndUnits, (AsyncResponse)ui);
     }
 
     public void killPoll(){
         poll.cancel(true);
     }
 
+    public boolean isSpectator(){
+        return isSpectator;
+    }
+
+    public AsyncResponse getUI(){
+        return ui;
+    }
+
     /*
         Checks the enemyUnits arrayList. if any two units have different names, I know I'm a spectator
         If I am a spectator, adjust myUnits and enemyUnits to differentiate the players' armies
      */
-    private boolean checkIfSpectator(){
+    private void checkIfSpectator(){
         String nameOne = "one";
-        boolean isSpectator = false;
         if(!myUnits.isEmpty()){
-            return false;
+            return;
         }
         for(int i = 0; i < enemyUnits.size(); i++){
             if(i == 0){
                 nameOne = enemyUnits.get(i).getOwner();
             }
             else if(!enemyUnits.get(i).getOwner().equals(nameOne)){
-                //I don't return here because it also separated armies if I am one.
+                //I don't return here because it also separates armies if I am a spectator.
                 //no need to possibly iterate through n-1 units to separate them later
                 isSpectator = true;
                 int mapID = enemyUnits.get(i).getMapID();
@@ -153,7 +97,6 @@ public class InactivePlayer extends Player {
                 i--;
             }
         }
-        return isSpectator;
     }
 
     /**
@@ -253,5 +196,68 @@ public class InactivePlayer extends Player {
             default:
                 break;
         }
+    }
+    @Override
+    public void showStuff(JSONArray result) {
+        Log.d("showStuff result", result.toString());
+        playerAndUnits = result;
+        myUnits = convertToArrayList(true);
+        enemyUnits = convertToArrayList(false);
+        //units update everytime a poll is answered
+        checkIfSpectator();
+
+        try {
+            //creates the active player originally attempted in UI after waitForTurn is called.
+            //Having it here forces us to wait until I'm actually the active player before I become active
+            if (result.getJSONObject(0).getString("userID").equals(myName)) {
+                killPoll();
+                Log.d("check showStuff result", "switching to ActivePlayer");
+//                if(ui.endMenu.isShowing()) {
+//                    ui.endMenu.dismiss();
+//                }
+//                String  end = endgame();
+//                if(!end.equals("Game in Progress")){
+//                    ui.gameOn = false;
+//                }
+//                // players gain cash when they become active players
+//                int myCash = ui.player.getCash();
+//                ui.player = new ActivePlayer(ui.player);
+//                ui.player.setCash(myCash + 50);
+//                ui.beginTurnMakeMoney();
+            }
+            else{
+                //set text of ui popup to show whose turn it is
+//                if(result.getJSONObject(0).getString("userID").equals("null")){
+//                    ui.endText.setText("Need additional player to start game");
+//                }
+//                else if(isSpectator){
+//                    ui.endText.setText(result.getJSONObject(0).getString("userID") + " is currently playing");
+//                }
+//                else {
+//                    ui.endText.setText("It is " + result.getJSONObject(0).getString("userID") + "'s turn.");
+//                }
+//                //popup cannot be activated directly inside UI. So, activating it here
+//                ui.endMenu.showAtLocation(ui.scroller, Gravity.BOTTOM, 0, 400);
+                //after copying, I need to replace the name, since it may not be mine.
+                JSONObject needToReplaceName = new JSONObject();
+                needToReplaceName.put("userID", myName);
+                playerAndUnits.put(0, needToReplaceName);
+            }
+        }
+        catch(JSONException e){
+            Log.d("JSONException", e.toString());
+        }
+
+        //Since I made the player, myArmy, and enemyArmy in the UI static, I'm able to change its values
+//        ui.player.setMyUnits(myUnits);
+//        ui.player.setEnemyUnits(enemyUnits);
+//        ui.myArmy = getMyUnits();
+//        ui.enemyArmy = getEnemyUnits();
+
+        //all whatever I need to display the changes to unit positions. the execute below will call this
+//        ui.clearMap();
+//        ui.updateUnits(myUnits,true);
+//        ui.updateUnits(enemyUnits, false);
+
     }
 }
