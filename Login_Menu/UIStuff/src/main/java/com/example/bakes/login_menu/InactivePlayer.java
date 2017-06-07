@@ -1,9 +1,7 @@
 package com.example.bakes.login_menu;
 
-import android.app.Activity;
 import android.content.Context;
 import android.util.Log;
-import android.view.Gravity;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -16,21 +14,22 @@ import coms309.mike.units.General;
 import coms309.mike.units.Spearman;
 import coms309.mike.units.Swordsman;
 import coms309.mike.units.Unit;
-import warofages.gamebackend.AsyncResponse;
+import warofages.gamebackend.AsyncResultHandler;
+import warofages.gamebackend.DisplaysChanges;
 import warofages.gamebackend.PollServerTask;
 
 /**
  * Created by Mike on 10/29/2016.
  */
 
-public class InactivePlayer extends Player implements AsyncResponse{
+public class InactivePlayer extends Player implements AsyncResultHandler {
     //This array is compared to the results from the server.
     //I only have one inactive player at a time. NOTE: I did not make this a singleton, so that is not enforced in this class.
     static JSONArray playerAndUnits;
     private PollServerTask poll;
     private boolean isSpectator = false;
 
-    public InactivePlayer(String myName, Context context,AsyncResponse ui){
+    public InactivePlayer(String myName, Context context, DisplaysChanges ui){
         //First thing: construct the superclass.
         super(context, myName, ui);
         playerAndUnits = new JSONArray();
@@ -67,7 +66,7 @@ public class InactivePlayer extends Player implements AsyncResponse{
         return isSpectator;
     }
 
-    public AsyncResponse getUI(){
+    public DisplaysChanges getUI(){
         return ui;
     }
 
@@ -197,9 +196,9 @@ public class InactivePlayer extends Player implements AsyncResponse{
                 break;
         }
     }
+
     @Override
-    public void showStuff(JSONArray result) {
-        Log.d("showStuff result", result.toString());
+    public void handlePollResult(JSONArray result) {
         playerAndUnits = result;
         myUnits = convertToArrayList(true);
         enemyUnits = convertToArrayList(false);
@@ -209,55 +208,18 @@ public class InactivePlayer extends Player implements AsyncResponse{
         try {
             //creates the active player originally attempted in UI after waitForTurn is called.
             //Having it here forces us to wait until I'm actually the active player before I become active
-            if (result.getJSONObject(0).getString("userID").equals(myName)) {
+            if (result.getJSONObject(0).getString("userID").equals(myName))
                 killPoll();
-                Log.d("check showStuff result", "switching to ActivePlayer");
-//                if(ui.endMenu.isShowing()) {
-//                    ui.endMenu.dismiss();
-//                }
-//                String  end = endgame();
-//                if(!end.equals("Game in Progress")){
-//                    ui.gameOn = false;
-//                }
-//                // players gain cash when they become active players
-//                int myCash = ui.player.getCash();
-//                ui.player = new ActivePlayer(ui.player);
-//                ui.player.setCash(myCash + 50);
-//                ui.beginTurnMakeMoney();
-            }
             else{
-                //set text of ui popup to show whose turn it is
-//                if(result.getJSONObject(0).getString("userID").equals("null")){
-//                    ui.endText.setText("Need additional player to start game");
-//                }
-//                else if(isSpectator){
-//                    ui.endText.setText(result.getJSONObject(0).getString("userID") + " is currently playing");
-//                }
-//                else {
-//                    ui.endText.setText("It is " + result.getJSONObject(0).getString("userID") + "'s turn.");
-//                }
-//                //popup cannot be activated directly inside UI. So, activating it here
-//                ui.endMenu.showAtLocation(ui.scroller, Gravity.BOTTOM, 0, 400);
-                //after copying, I need to replace the name, since it may not be mine.
                 JSONObject needToReplaceName = new JSONObject();
                 needToReplaceName.put("userID", myName);
                 playerAndUnits.put(0, needToReplaceName);
             }
         }
         catch(JSONException e){
-            Log.d("JSONException", e.toString());
+            Log.d("JSONException", e.getLocalizedMessage());
         }
-
-        //Since I made the player, myArmy, and enemyArmy in the UI static, I'm able to change its values
-//        ui.player.setMyUnits(myUnits);
-//        ui.player.setEnemyUnits(enemyUnits);
-//        ui.myArmy = getMyUnits();
-//        ui.enemyArmy = getEnemyUnits();
-
-        //all whatever I need to display the changes to unit positions. the execute below will call this
-//        ui.clearMap();
-//        ui.updateUnits(myUnits,true);
-//        ui.updateUnits(enemyUnits, false);
-        ui.showStuff(playerAndUnits);
+        //now all I have to do is display the changes
+        ui.displayPollResult(playerAndUnits);
     }
 }

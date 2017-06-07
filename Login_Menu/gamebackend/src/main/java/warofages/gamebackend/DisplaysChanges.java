@@ -7,8 +7,10 @@ import org.json.JSONArray;
  * Basically a callback to return the response to whoever needs it
  */
 
-public interface AsyncResponse {
+public interface DisplaysChanges {
 
-        void showStuff(JSONArray result);
+        void displayPollResult(JSONArray result);
+
+        void continueAfterTerrainLoaded();
 
 }

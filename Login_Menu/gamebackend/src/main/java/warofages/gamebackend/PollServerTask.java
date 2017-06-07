@@ -7,7 +7,6 @@ import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import coms309.mike.clientcomm.ClientComm;
 import coms309.mike.clientcomm.VolleyCallback;
@@ -24,16 +23,16 @@ import coms309.mike.clientcomm.VolleyCallback;
 public class PollServerTask extends AsyncTask<Context, JSONArray, JSONArray> {
     private JSONArray myNameAndArmy;
     //holds an instance of the calling class. This allows me to use the callback there to do work with the
-    private AsyncResponse receiver;
+    private AsyncResultHandler receiver;
     String myName = "a player has no name";
 
-    public PollServerTask(JSONArray myNameAndArmy, AsyncResponse callback){
+    public PollServerTask(JSONArray myNameAndArmy, AsyncResultHandler callback){
         this.myNameAndArmy = myNameAndArmy;
         receiver = callback;
     }
 
     /**
-     * Ends when it is cancelled in the showStuff callback
+     * Ends when it is cancelled in the displayPollResult callback
      * @param contexts I have to take in multiple parameters, but I'm only checking the first.
      * @return JSONArray with all unitIDs and mapIDs
      */
@@ -86,7 +85,7 @@ public class PollServerTask extends AsyncTask<Context, JSONArray, JSONArray> {
     public void onProgressUpdate(JSONArray... progress){
         if(!isCancelled()){
             Log.d("polling loop", "publishing progress");
-            receiver.showStuff(progress[0]);
+            receiver.handlePollResult(progress[0]);
         }
     }
 
@@ -99,12 +98,12 @@ public class PollServerTask extends AsyncTask<Context, JSONArray, JSONArray> {
         Log.d("polling loop", "onPostExecute ran");
         if(!isCancelled()) {
             //Nothing done with this, as the progressUpdate already does what I need...
-            receiver.showStuff(result);
+            receiver.handlePollResult(result);
         }
     }
     @Override
     protected void onCancelled(JSONArray result){
         Log.d("onCancelled", "AsyncTask cancelled");
-//        receiver.showStuff(result);
+//        receiver.displayPollResult(result);
     }
 }

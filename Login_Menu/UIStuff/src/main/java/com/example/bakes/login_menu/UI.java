@@ -22,9 +22,6 @@ import org.json.JSONObject;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Observable;
-import java.util.Observer;
-import java.util.Scanner;
 
 import coms309.mike.clientcomm.ClientComm;
 import coms309.mike.clientcomm.VolleyCallback;
@@ -34,29 +31,29 @@ import coms309.mike.units.General;
 import coms309.mike.units.Spearman;
 import coms309.mike.units.Swordsman;
 import coms309.mike.units.Unit;
-import warofages.gamebackend.AsyncResponse;
+import warofages.gamebackend.DisplaysChanges;
 import warofages.gamebackend.UIbackend;
 
-public class UI extends AppCompatActivity implements AsyncResponse{
+public class UI extends AppCompatActivity implements DisplaysChanges {
     boolean movedToOtherIntent = false;
 
     private UIbackend uiBackend;
     private final int MOVE_ICON_ID = 10000;
 
-    //The number of squares in the map. Needs clean squareroot
-    static int mapSize = 100;
+    //The number of squares in the map. Used so often that I save the value in here
+    private int mapSize;
     //size of the map tiles image
     int tileSize = 100;
     //username
     String username = "";
     //current player
     Player player;
-    //list of my units.     Using until active player has move checking implimmented
-    ArrayList<Unit> myArmy;
-    //list of enemy units
-    ArrayList<Unit> enemyArmy;
+//    //list of my units.     Using until active player has move checking implimmented
+//    ArrayList<Unit> myArmy;
+//    //list of enemy units
+//    ArrayList<Unit> enemyArmy;
     //list of terrain locations
-    int terrainMap[];
+//    int terrainMap[];
     int cash;
     //if click on town with friendly unit and 0, open town menu.
     // if 1, currently using popup. if 2, moving unit.
@@ -87,7 +84,8 @@ public class UI extends AppCompatActivity implements AsyncResponse{
         makeTownMenu();
         makeEndMenu();
 
-        getTerrain();
+        uiBackend = new UIbackend(getApplicationContext(), this);
+        uiBackend.getMapFromServer();
     }
 
     //shows whose turn it is
@@ -168,7 +166,7 @@ public class UI extends AppCompatActivity implements AsyncResponse{
     }
 
     //Create table of any size(must be square)
-    private void setButtons(){
+    private void createTerrainButtons(){
         //Creates an initial row
         LinearLayout mapLayout = (LinearLayout) findViewById(R.id.gameLayout);
 
@@ -223,56 +221,6 @@ public class UI extends AppCompatActivity implements AsyncResponse{
         column.setLayoutParams(params);
     }
 
-    //gets map from server
-    public void getTerrain() {
-        ClientComm comm = new ClientComm(getApplicationContext());
-        JSONArray map = new JSONArray();
-        JSONObject map1 = new JSONObject();
-        try {
-            map1.put("map", "map1");
-        } catch (JSONException e) {
-            //EditText t = (EditText) findViewById(R.id.error);
-            //t.setText(e.toString());
-            // t.setVisibility(View.VISIBLE);
-        }
-        //This is for if we had more than one map available
-        //map.put(map1);
-
-        //Makes connection to server and requests the terrain map
-        comm.serverPostRequest("adminMap.php", map, new VolleyCallback<JSONArray>() {
-            @Override
-            public void onSuccess(JSONArray result) {
-                Log.d("basicMap result", result.toString());
-                try {
-                    if (result.getJSONObject(0).getString("code").equals("update_success")) {
-                        String mapper = result.getJSONObject(1).getString("Map");
-                        Scanner scan = new Scanner(mapper).useDelimiter(":");
-                        mapSize = scan.nextInt();
-
-                        //get rid of key
-                        Log.d("med", "map size: " +mapSize);
-                        setButtons();
-                        uiBackend = new UIbackend();
-                        terrainMap = new int[mapSize];
-
-                        int tID = 0;
-                        while (scan.hasNextInt()) {
-                            int terrain = scan.nextInt();
-                            loadTerrain(terrain, tID);
-                            tID++;
-                        }
-                        scan.close();
-                        //continues here because Volley is asynchronous and I want to wait until its done
-                        finishSettingUp();
-                    }
-
-                } catch (org.json.JSONException e) {
-
-                }
-            }
-        });
-    }
-
     //gets players from server
     private void getPlayers(){
         ClientComm comm = new ClientComm(getApplicationContext());
@@ -295,42 +243,43 @@ public class UI extends AppCompatActivity implements AsyncResponse{
     }
 
     //load given terrain at given id
-    public void loadTerrain(int terrain, int id){
-        //gets imageview object at given id
-        String picName = "";
-        switch(terrain){
-            case 1:
-                picName = "tile_desert";
-                break;
-            case 2:
-                picName = "tile_forest";
-                break;
-            case 3:
-                picName = "tile_meadow";
-                break;
-            case 4:
-                picName = "tile_mountain";
-                break;
-            case 5:
-                picName = "tile_town_friendly";
-                break;
-            case 6:
-                picName = "tile_town_hostile";
-                break;
-            case 7:
-                picName = "tile_town_neutral";
-                break;
-            case 8:
-                picName = "tile_water";
-                break;
-        }
-        //gets and sets reference for picture ID. "p12" would indicate something went wrong
-        int resID = getResources().getIdentifier(picName.equals("") ? "p12" : picName, "drawable", getPackageName());
-        HexagonMaskView image = getImage(id);
+    public void loadTerrainToButtons(){
+        for(int id = 0; id < uiBackend.getMapSize(); id++) {
+            int terrainTypeID = uiBackend.getTerrainAtLocation(id);
+            //gets imageview object at given id
+            String picName = "";
+            switch (terrainTypeID) {
+                case 1:
+                    picName = "tile_desert";
+                    break;
+                case 2:
+                    picName = "tile_forest";
+                    break;
+                case 3:
+                    picName = "tile_meadow";
+                    break;
+                case 4:
+                    picName = "tile_mountain";
+                    break;
+                case 5:
+                    picName = "tile_town_friendly";
+                    break;
+                case 6:
+                    picName = "tile_town_hostile";
+                    break;
+                case 7:
+                    picName = "tile_town_neutral";
+                    break;
+                case 8:
+                    picName = "tile_water";
+                    break;
+            }
+            //gets and sets reference for picture ID. "p12" would indicate something went wrong
+            int resID = getResources().getIdentifier(picName.equals("") ? "p12" : picName, "drawable", getPackageName());
+            HexagonMaskView image = getImage(id);
 
-        image.setImageResource(resID);
-        //army layer is implemented as a foreground, so I don't need to create a new image anymore
-        terrainMap[id] = terrain;
+            image.setImageResource(resID);
+        }
     }
 
     HexagonMaskView getImage(int mapID){
@@ -464,8 +413,8 @@ public class UI extends AppCompatActivity implements AsyncResponse{
                         movingUnit = null;
                     }
 
-                    myArmy = player.getMyUnits();
-                    enemyArmy = player.getEnemyUnits();
+//                    myArmy = player.getMyUnits();
+//                    enemyArmy = player.getEnemyUnits();
                     Unit enemyUnit = null;
                     if (movingUnit == null) {
                         enemyUnit = getUnitFromMap(currentMapClicked, false);
@@ -482,7 +431,7 @@ public class UI extends AppCompatActivity implements AsyncResponse{
                     }
                     //if friendly unit on a town and you click it, open town menu
                     else if (currentMapClicked >= 0 && currentMapClicked <= mapSize - 1 &&
-                            terrainMap[currentMapClicked] == 5 && (unitVtown == -1) &&
+                            uiBackend.getTerrainAtLocation(currentMapClicked) == 5 && (unitVtown == -1) &&
                             (movingUnit != null) && (player instanceof ActivePlayer)
                             && (((ActivePlayer) player).moving == -1)) {
 
@@ -494,7 +443,7 @@ public class UI extends AppCompatActivity implements AsyncResponse{
                         movingUnit = getUnitFromMap(unitVtown, true);
 
                         if (v.getId() == MOVE_ICON_ID) {//clicked on move button
-                            // I have this little bit in a few places. feels sloppy, but all of UI feels slopy
+                            // TODO: I have this little bit in a few places. feels sloppy, but all of UI feels slopy
                             Integer moves[] = getMoves(movingUnit);
                             Integer attacks[] = getAttackRange(movingUnit);
                             Integer largestArea[];
@@ -529,12 +478,12 @@ public class UI extends AppCompatActivity implements AsyncResponse{
                             //take all surrounding tiles and add unit to first empty one
                             int unitIDtoAdd = v.getId() - MOVE_ICON_ID;
                             //surrounding tiles
-                            Integer[] moves = ((ActivePlayer) player).checkArea(unitVtown, 1, unitIDtoAdd, terrainMap, false);
+                            Integer[] moves = ((ActivePlayer) player).checkArea(unitVtown, 1, unitIDtoAdd, uiBackend.getMap(), false);
                             for (int move : moves) {
                                 if ((move > -1) && (move < mapSize) && ((ActivePlayer) player).spaceAvaliableMove(move) == 1
-                                        && terrainMap[move] != 6
-                                        && !(unitIDtoAdd == 5 && terrainMap[move] == 4)
-                                        && !(unitIDtoAdd == 2 && terrainMap[move] == 4)) {
+                                        && uiBackend.getTerrainAtLocation(move) != 6
+                                        && !(unitIDtoAdd == 5 && uiBackend.getTerrainAtLocation(move) == 4)
+                                        && !(unitIDtoAdd == 2 && uiBackend.getTerrainAtLocation(move) == 4)) {
                                     //creates unit and sends it to server
                                     createUnit(move, unitIDtoAdd);
                                     // don't actually move the unit, but dont let it move anymore
@@ -637,21 +586,21 @@ public class UI extends AppCompatActivity implements AsyncResponse{
     private Integer[] getMoves(Unit movingUnit){
         int moveSpeed = movingUnit.getMoveSpeed();
         int gridID = movingUnit.getMapID();
-        return ((ActivePlayer)player).checkArea(gridID, moveSpeed, movingUnit.getUnitID(), terrainMap, false);
+        return ((ActivePlayer)player).checkArea(gridID, moveSpeed, movingUnit.getUnitID(), uiBackend.getMap(), false);
     }
     private Integer[] getAttackRange(Unit movingUnit){
         int attackRange = 1;
         if(movingUnit instanceof Archer){
             attackRange = 3;
         }
-        return ((ActivePlayer)player).checkArea(movingUnit.getMapID(), attackRange, movingUnit.getUnitID(), terrainMap, true);
+        return ((ActivePlayer)player).checkArea(movingUnit.getMapID(), attackRange, movingUnit.getUnitID(), uiBackend.getMap(), true);
     }
     private void UIAttack(Unit movingUnit, int attackerGridID, int defenderGridID){
         Integer possibleAttacks[] = getAttackRange(movingUnit);
         //if enemy if outside of attack range, it will return without attempting an attack
         for(int index : possibleAttacks){
             if(defenderGridID == index){
-                String attackResults = ((ActivePlayer)player).attack(defenderGridID, attackerGridID, terrainMap);
+                String attackResults = ((ActivePlayer)player).attack(defenderGridID, attackerGridID, uiBackend.getMap());
                 if (attackResults.equals("Fail")) {
                     clearImage(attackerGridID);
                 } else if (attackResults.equals("Success")) {
@@ -671,16 +620,16 @@ public class UI extends AppCompatActivity implements AsyncResponse{
      */
     private Unit getUnitFromMap(final int mapID, boolean friendly){
         if(friendly) {
-            for (int i = 0; i < myArmy.size(); i++) {
-                if (myArmy.get(i).getMapID() == mapID) {
-                    return myArmy.get(i);
+            for (int i = 0; i < player.getMyUnits().size(); i++) {
+                if (player.getMyUnits().get(i).getMapID() == mapID) {
+                    return player.getMyUnits().get(i);
                 }
             }
         }
         else{
-            for(int i = 0; i < enemyArmy.size(); i++){
-                if(enemyArmy.get(i).getMapID() == mapID){
-                    return enemyArmy.get(i);
+            for(int i = 0; i < player.getEnemyUnits().size(); i++){
+                if(player.getEnemyUnits().get(i).getMapID() == mapID){
+                    return player.getEnemyUnits().get(i);
                 }
             }
         }
@@ -813,7 +762,8 @@ public class UI extends AppCompatActivity implements AsyncResponse{
             message = message + " has been recruited.";
             newUnit.moveUnit(mapID); //Didn't actually move, but sets its moved boolean
             newUnit.setHasAttacked(); //ensure the new unit doesn't attack
-            myArmy.add(newUnit);
+            player.getMyUnits().add(newUnit);
+//            myArmy.add(newUnit);
             //set unit image
             displaySingleUnit(newUnit, false);
 
@@ -889,7 +839,7 @@ public class UI extends AppCompatActivity implements AsyncResponse{
     }
 
     @Override
-    public void showStuff(JSONArray result){
+    public void displayPollResult(JSONArray result){
         String activePlayerName;
         try {
             activePlayerName = result.getJSONObject(0).getString("userID");
@@ -922,10 +872,18 @@ public class UI extends AppCompatActivity implements AsyncResponse{
             //popup cannot be activated directly inside UI. So, activating it here
             endMenu.showAtLocation(scroller, Gravity.BOTTOM, 0, 400);
         }
-        myArmy = player.getMyUnits();
-        enemyArmy = player.enemyUnits;
+//        myArmy = player.getMyUnits();
+//        enemyArmy = player.enemyUnits;
         clearMap();
-        updateUnits(myArmy,true);
-        updateUnits(enemyArmy, false);
+        updateUnits(player.getMyUnits(),true);
+        updateUnits(player.getEnemyUnits(), false);
+    }
+
+    @Override
+    public void continueAfterTerrainLoaded(){
+        mapSize = uiBackend.getMapSize();
+        createTerrainButtons();
+        loadTerrainToButtons();
+        finishSettingUp();
     }
 }
