@@ -1,4 +1,4 @@
-package com.example.bakes.login_menu;
+package warofages.gamebackend;
 import android.content.Context;
 
 import org.json.JSONArray;
@@ -10,7 +10,6 @@ import java.util.Random;
 
 import coms309.mike.clientcomm.ClientComm;
 import coms309.mike.clientcomm.VolleyCallback;
-import warofages.gamebackend.DisplaysChanges;
 
 
 /**
@@ -62,7 +61,7 @@ public class ActivePlayer extends Player {
         return stats;
     }
     public Boolean setmoving(int unitID){
-        if(moving==-1 && checkIfMine(unitID)==true){
+        if(moving==-1 && checkIfMine(unitID)){
             moving=unitID;
             return true;
         }
@@ -73,10 +72,10 @@ public class ActivePlayer extends Player {
         final int noMove=0;
         final int canMoveTerrain=1;
         final int canMoveEnemy=2;
-        if(checkIfMine(newMapID)==true){
+        if(checkIfMine(newMapID)){
             return noMove;
         }
-        else if (checkIfEnemy(newMapID)==true) {
+        else if (checkIfEnemy(newMapID)) {
             return canMoveEnemy;
         }
         return canMoveTerrain;

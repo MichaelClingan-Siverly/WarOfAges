@@ -1,8 +1,11 @@
-package com.example.bakes.login_menu;
+package warofages.gamebackend;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import coms309.mike.units.Unit;
 import warofages.gamebackend.DisplaysChanges;
@@ -14,20 +17,22 @@ import warofages.gamebackend.DisplaysChanges;
 //TODO make it implement PlayerInterface
 
 public abstract class Player {
-    protected ArrayList<Unit> myUnits;
-    protected ArrayList<Unit> enemyUnits;
+    //TODO think VERY hard about whether I want two HashMaps, or one with LinkedLists of Units as values
+    protected HashMap<Integer, Unit> myUnits;
+    protected HashMap<Integer, Unit> enemyUnits;
     protected String myName = "a player has no name";
     protected Context context;
     protected DisplaysChanges ui;
     public static int cash = 0;
 
     //I need whatever context this player is in. used for the ClientComm stuff
+    @SuppressLint("UseSparseArrays")
     public Player(Context context, String myName, DisplaysChanges ui){
         this.context = context;
         this.myName = myName;
         this.ui = ui;
-        myUnits = new ArrayList<>();
-        enemyUnits = new ArrayList<>();
+        myUnits = new HashMap<>();
+        enemyUnits = new HashMap<>();
     }
 
     public void setCash(int newCashAmount){
@@ -52,40 +57,43 @@ public abstract class Player {
         return myName;
     }
 
-    /**
-     *
-     * @return arraylist of my unitIDs
-     */
-    public ArrayList<Unit> getMyUnits(){
+    public HashMap<Integer, Unit> getMyUnits(){
         return myUnits;
     }
 
-    /**
-     *
-     * @return arraylist of enemy unitIDs
-     */
-    public ArrayList<Unit> getEnemyUnits(){
+    public HashMap<Integer, Unit> getEnemyUnits(){
          return enemyUnits;
     }
 
-
-    public void setMyUnits(ArrayList<Unit> newArmy){
-        myUnits = newArmy;
-    }
-    public void setEnemyUnits(ArrayList<Unit> newArmy){
-        enemyUnits = newArmy;
+    public Unit getEnemyUnit(int mapID){
+        return enemyUnits.get(mapID);
     }
 
-    public String endgame(){
-        if (myUnits.size()==0){
-            String player = enemyUnits.get(0).getOwner();
-            return player + "wins";
+    public Unit getFriendlyUnit(int mapID){
+        return myUnits.get(mapID);
+    }
+
+    public boolean checkIfNoUnits(boolean friendly){
+        if(friendly){
+            if(myUnits.isEmpty())
+                return true;
+            else
+                return false;
         }
-        else if(enemyUnits.size()==0){
-            String player = myUnits.get(0).getOwner();
-            return player + "wins";
+        else{
+            if(enemyUnits.isEmpty())
+                return true;
+            else
+                return false;
         }
-        return "Game in Progress";
     }
 
+    public String getEnemyName(){
+        if(!checkIfNoUnits(false)){
+            String enemyName;
+            Unit[] a = getEnemyUnits().values().toArray(new Unit[0]);
+            return a[0].getOwner();
+        }
+        return "An enemy with no army deserved no name";
+    }
 }

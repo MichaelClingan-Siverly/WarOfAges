@@ -2,50 +2,42 @@ package warofages.gamebackend;
 
 import android.content.Context;
 import android.util.Log;
+import android.util.SparseArray;
 
 import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Scanner;
 
 import coms309.mike.clientcomm.ClientComm;
 import coms309.mike.clientcomm.VolleyCallback;
+import coms309.mike.units.Unit;
 
 /**
  * Created by mike on 6/2/2017.
  */
 
 public class UIbackend {
-    private Hashtable table;
+    /*  IDE suggested using a SparseArray here. I only add towns once, they aren't removed, and there
+        should usually be few of them in comparison to the size of the map. Seems like any performance
+        loss would be worth the memory saved
+    */
+    private SparseArray<Town> towns;
     private DisplaysChanges UI;
     private ClientComm comm;
     private int[] terrainMap;
-    public UIbackend(Context context, DisplaysChanges ui){
+    private Player player;
+    public UIbackend(Context context, String myName, DisplaysChanges ui){
+        player = new InactivePlayer(myName, context, ui);
         UI = ui;
         comm = new ClientComm(context);
-        table = new Hashtable();
+        towns = new SparseArray<>();
         //TODO constructor
     }
 
     public void getMapFromServer(){
-        JSONArray map = new JSONArray();
-        JSONObject map1 = new JSONObject();
-        try {
-            map1.put("map", "map1");
-        } catch (JSONException e) {
-            //EditText t = (EditText) findViewById(R.id.error);
-            //t.setText(e.toString());
-            // t.setVisibility(View.VISIBLE);
-        }
-        //This is for if we had more than one map available
-        //map.put(map1);
-
         //Makes connection to server and requests the terrain map
-        comm.serverPostRequest("adminMap.php", map, new VolleyCallback<JSONArray>() {
+        comm.serverPostRequest("adminMap.php", new JSONArray(), new VolleyCallback<JSONArray>() {
             @Override
             public void onSuccess(JSONArray result) {
                 try {
@@ -54,14 +46,24 @@ public class UIbackend {
                         Scanner scan = new Scanner(mapper).useDelimiter(":");
                         int mapSize = scan.nextInt();
 
-                        //get rid of key
-//                        setButtons();
-
                         terrainMap = new int[mapSize];
 
                         int tID = 0;
                         while (scan.hasNextInt()) {
-                            terrainMap[tID] = scan.nextInt();
+                            int terrainCode = scan.nextInt();
+                            terrainMap[tID] = terrainCode;
+                            switch(terrainCode){
+                                case 5:
+                                    //TODO add friendly town
+                                    break;
+                                case 6:
+                                    //TODO add hostile town
+                                    break;
+                                case 7:
+                                    //TODO add neutral town
+                                    break;
+                            }
+
                             tID++;
                         }
                         scan.close();
@@ -75,6 +77,10 @@ public class UIbackend {
                 }
             }
         });
+    }
+
+    public void waitForTurn(){
+        ((InactivePlayer)player).waitForTurn();
     }
 
     public int getMapSize(){
@@ -98,8 +104,38 @@ public class UIbackend {
             town = new Town(mapID, owner);
         else
             town = new Town(mapID);
-        table.put(mapID, town);
+        if(!towns.get(mapID).equals(null))
+            towns.put(mapID, town);
     }
 
+    public Player getPlayer(){
+        return player;
+    }
 
+    public boolean playerIsActive(){
+        return player instanceof ActivePlayer;
+    }
+
+    public void becomeInactive(){
+        if(player instanceof  InactivePlayer){
+            player = new InactivePlayer(player);
+            ((InactivePlayer)player).waitForTurn();
+        }
+    }
+
+    public String checkIfGameOver(){
+        if(player.checkIfNoUnits(true) && player.checkIfNoUnits(false))
+            return "Game is a Draw";
+        else if(player.checkIfNoUnits(true)) {
+            return player.getEnemyName() + " wins";
+        }
+        else if(player.checkIfNoUnits(false)){
+            return player.myName + " wins";
+        }
+        return "Game in Progress";
+    }
+
+    public void helpWithClicks(){
+
+    }
 }
