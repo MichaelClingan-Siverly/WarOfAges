@@ -74,7 +74,7 @@ public class InactivePlayer extends Player implements AsyncResultHandler {
      */
     private void checkIfSpectator(){
         String nameOne = "one";
-        if(!myUnits.isEmpty()){
+        if(!checkIfNoUnits(true)){
             return;
         }
         for(int i = 0; i < enemyUnits.size(); i++){

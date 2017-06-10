@@ -1,5 +1,6 @@
 package warofages.gamebackend;
 import android.content.Context;
+import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -15,6 +16,7 @@ import coms309.mike.clientcomm.VolleyCallback;
 /**
  * Created by Bakes on 10/31/16.
  */
+//TODO well...just about everything...
 public class ActivePlayer extends Player {
     DisplaysChanges ui;
 
@@ -296,7 +298,7 @@ public class ActivePlayer extends Player {
 
         }
         catch (JSONException e){
-            System.out.println(e);
+            Log.d("formAttackJSON", e.getLocalizedMessage());
         }
         jsonhealth.put(myObjectID);
         jsonhealth.put(myObjectHealth);

@@ -2,6 +2,7 @@ package warofages.gamebackend;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.util.SparseArray;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -14,12 +15,10 @@ import warofages.gamebackend.DisplaysChanges;
  * Created by Mike on 10/29/2016.
  */
 
-//TODO make it implement PlayerInterface
-
 public abstract class Player {
-    //TODO think VERY hard about whether I want two HashMaps, or one with LinkedLists of Units as values
-    protected HashMap<Integer, Unit> myUnits;
-    protected HashMap<Integer, Unit> enemyUnits;
+    //I may later decide to use hashmaps, but the memory efficiency sounds pretty nice.
+    protected SparseArray<Unit> myUnits;
+    protected SparseArray<Unit> enemyUnits;
     protected String myName = "a player has no name";
     protected Context context;
     protected DisplaysChanges ui;
@@ -31,8 +30,8 @@ public abstract class Player {
         this.context = context;
         this.myName = myName;
         this.ui = ui;
-        myUnits = new HashMap<>();
-        enemyUnits = new HashMap<>();
+        myUnits = new SparseArray<>();
+        enemyUnits = new SparseArray<>();
     }
 
     public void setCash(int newCashAmount){
@@ -57,11 +56,11 @@ public abstract class Player {
         return myName;
     }
 
-    public HashMap<Integer, Unit> getMyUnits(){
+    public SparseArray<Unit> getMyUnits(){
         return myUnits;
     }
 
-    public HashMap<Integer, Unit> getEnemyUnits(){
+    public SparseArray<Unit> getEnemyUnits(){
          return enemyUnits;
     }
 
@@ -75,13 +74,13 @@ public abstract class Player {
 
     public boolean checkIfNoUnits(boolean friendly){
         if(friendly){
-            if(myUnits.isEmpty())
+            if(myUnits.size() == 0)
                 return true;
             else
                 return false;
         }
         else{
-            if(enemyUnits.isEmpty())
+            if(enemyUnits.size() == 0)
                 return true;
             else
                 return false;
@@ -90,9 +89,8 @@ public abstract class Player {
 
     public String getEnemyName(){
         if(!checkIfNoUnits(false)){
-            String enemyName;
-            Unit[] a = getEnemyUnits().values().toArray(new Unit[0]);
-            return a[0].getOwner();
+            //I know its not empty, so at least index 0 must have a unit in it
+            return getEnemyUnits().valueAt(0).getOwner();
         }
         return "An enemy with no army deserved no name";
     }

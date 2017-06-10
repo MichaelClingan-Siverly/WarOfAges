@@ -108,6 +108,10 @@ public class UIbackend {
             towns.put(mapID, town);
     }
 
+    public SparseArray<Town> getTowns(){
+        return towns;
+    }
+
     public Player getPlayer(){
         return player;
     }
@@ -135,7 +139,24 @@ public class UIbackend {
         return "Game in Progress";
     }
 
-    public void helpWithClicks(){
+    /**
+     * helper for the buttons
+     * @param mapID mapID of the space to be checked for a unit
+     * @param friendly indicate if a friendly (true) or hostile (false) unit is wanted
+     * @return the friendly/hostile unit corresponding to the space clicked, or null if there is no match
+     */
+    public Unit getUnitFromMap(final int mapID, boolean friendly){
+        if(friendly)
+            return player.getFriendlyUnit(mapID);
+        else
+            return player.getEnemyUnit(mapID);
+    }
+
+    public void helpWithMapClicks(){
+
+    }
+
+    public void helpWithTownMenuClicks(){
 
     }
 }

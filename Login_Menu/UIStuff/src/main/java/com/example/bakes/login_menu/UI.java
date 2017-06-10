@@ -6,6 +6,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,6 +23,7 @@ import org.json.JSONObject;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import coms309.mike.clientcomm.ClientComm;
 import coms309.mike.clientcomm.VolleyCallback;
@@ -304,16 +306,16 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
             getImage(mapID).setForeground(null);
     }
 
-    public void updateUnits(ArrayList<Unit> units, boolean friendly){
+    public void updateUnits(boolean friendly){
+        SparseArray<Unit> units;
         if(friendly) {
-            for (int i = 0; i < units.size(); i++) {
-                displaySingleUnit(units.get(i), false);
-            }
+            units = uiBackend.getPlayer().getMyUnits();
         }
         else{
-            for (int i = 0; i < units.size(); i++) {
-                displaySingleUnit(units.get(i), false);
-            }
+            units = uiBackend.getPlayer().getEnemyUnits();
+        }
+        for (int i = 0; i < units.size(); i++) {
+            displaySingleUnit(units.valueAt(i), false);
         }
     }
 
@@ -395,7 +397,8 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
     View.OnClickListener townMenuListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            Unit movingUnit = getUnitFromMap(unitVtown, true);
+            uiBackend.helpWithTownMenuClicks();
+            Unit movingUnit = uiBackend.getUnitFromMap(unitVtown, true);
 
             if (v.getId() == MOVE_ICON_ID) {//clicked on move button
                 // TODO: I have this little bit in a few places. feels sloppy, but all of UI feels slopy
@@ -409,33 +412,32 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
                 }
                 //highlight surrounding area
                 for (int move : largestArea) {
-                    int moveCheck = ((ActivePlayer) player).spaceAvaliableMove(move);
+                    int moveCheck = ((ActivePlayer)uiBackend.getPlayer()).spaceAvaliableMove(move);
                     if (moveCheck == 0) {
-                        displaySingleUnit(getUnitFromMap(move, true), true);
+                        displaySingleUnit(uiBackend.getUnitFromMap(move, true), true);
                     } else if (moveCheck == 1) {
                         ImageView image = (ImageView) findViewById(move + mapSize);
                         image.setImageResource(R.drawable.selected_tile);
                     } else if (moveCheck == 2) {
-                        displaySingleUnit(getUnitFromMap(move, false), true);
+                        displaySingleUnit(uiBackend.getUnitFromMap(move, false), true);
                     }
                 }
                 //display unit stats
-                double[] stats = ((ActivePlayer) player).getMyStats(unitVtown);
+                double[] stats = ((ActivePlayer)uiBackend.getPlayer()).getMyStats(unitVtown);
                 setInfoBar("Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
                 //current location of unit in the terrain map
-                ((ActivePlayer) player).moving = unitVtown;
+                ((ActivePlayer)uiBackend.getPlayer()).moving = unitVtown;
                 //close menu
                 unitVtown = -2;
                 townMenu.dismiss();
             }
-            //TODO
             else if (v.getId() > MOVE_ICON_ID && movingUnit != null && !movingUnit.checkIfMoved()) {//clicked on one of the add unit buttons
                 //take all surrounding tiles and add unit to first empty one
                 int unitIDtoAdd = v.getId() - MOVE_ICON_ID;
                 //surrounding tiles
-                Integer[] moves = ((ActivePlayer) player).checkArea(unitVtown, 1, unitIDtoAdd, uiBackend.getMap(), false);
+                Integer[] moves = ((ActivePlayer)uiBackend.getPlayer()).checkArea(unitVtown, 1, unitIDtoAdd, uiBackend.getMap(), false);
                 for (int move : moves) {
-                    if ((move > -1) && (move < mapSize) && ((ActivePlayer) player).spaceAvaliableMove(move) == 1
+                    if ((move > -1) && (move < mapSize) && ((ActivePlayer)uiBackend.getPlayer()).spaceAvaliableMove(move) == 1
                             && uiBackend.getTerrainAtLocation(move) != 6
                             && !(unitIDtoAdd == 5 && uiBackend.getTerrainAtLocation(move) == 4)
                             && !(unitIDtoAdd == 2 && uiBackend.getTerrainAtLocation(move) == 4)) {
@@ -476,21 +478,21 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
                     //Get the unit thats moving (only from myArmy), so I can get its movespeed and stuff
                     Unit movingUnit;
                      Unit enemyUnit = null;
-                    if (((ActivePlayer) player).moving == -1) {
-                        movingUnit = getUnitFromMap(currentMapClicked, true);
+                    if (((ActivePlayer)uiBackend.getPlayer()).moving == -1) {
+                        movingUnit = uiBackend.getUnitFromMap(currentMapClicked, true);
                     } else {
-                        movingUnit = getUnitFromMap(((ActivePlayer) player).moving, true);
+                        movingUnit = uiBackend.getUnitFromMap(((ActivePlayer)uiBackend.getPlayer()).moving, true);
                     }
                     if (movingUnit != null && movingUnit.checkIfMoved() && movingUnit.checkIfAttacked()) {
                         movingUnit = null;
                     }
                     if (movingUnit == null) {
-                        enemyUnit = getUnitFromMap(currentMapClicked, false);
+                        enemyUnit = uiBackend.getUnitFromMap(currentMapClicked, false);
                     }
                     //if click on enemy unit, display its stats
                     if (enemyUnit != null) {
                         //display unit stats
-                        double[] stats = ((ActivePlayer) player).getEnemyStats(currentMapClicked);
+                        double[] stats = ((ActivePlayer)uiBackend.getPlayer()).getEnemyStats(currentMapClicked);
                         setInfoBar("Enemy Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
                     }//if click on empty space, display cash
                     else if ((movingUnit == null) && (v.getId() < MOVE_ICON_ID)) {
@@ -500,7 +502,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
                     //if friendly unit on a town and you click it, open town menu
                     else if (currentMapClicked >= 0 && currentMapClicked <= mapSize - 1 &&
                             uiBackend.getTerrainAtLocation(currentMapClicked) == 5 && (unitVtown == -1) &&
-                            (movingUnit != null) && (((ActivePlayer) player).moving == -1)) {
+                            (movingUnit != null) && (((ActivePlayer)uiBackend.getPlayer()).moving == -1)) {
 
                         ScrollView scroll = (ScrollView) findViewById(R.id.scroll);
                         townMenu.showAtLocation(scroll, Gravity.TOP, 0, 500);
@@ -529,30 +531,30 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
                             largestArea = attacks;
                         }
                         //Click on a unit (initiate a move)
-                        if (((ActivePlayer) player).moving == -1) {
+                        if (((ActivePlayer)uiBackend.getPlayer()).moving == -1) {
                             for (int move : largestArea) {
-                                int moveCheck = ((ActivePlayer) player).spaceAvaliableMove(move);
+                                int moveCheck = ((ActivePlayer)uiBackend.getPlayer()).spaceAvaliableMove(move);
                                 if (moveCheck == 0) {
-                                    displaySingleUnit(getUnitFromMap(move, true), true);
+                                    displaySingleUnit(uiBackend.getUnitFromMap(move, true), true);
                                 } else if (moveCheck == 1) {
                                     ImageView image = (ImageView) findViewById(move + mapSize);
                                     image.setImageResource(R.drawable.selected_tile);
                                 } else if (moveCheck == 2) {
-                                    displaySingleUnit(getUnitFromMap(move, false), true);
+                                    displaySingleUnit(uiBackend.getUnitFromMap(move, false), true);
                                 }
                             }
                             //current location of unit in the terrain map
-                            ((ActivePlayer) player).moving = currentMapClicked;
+                            ((ActivePlayer)uiBackend.getPlayer()).moving = currentMapClicked;
 
                             //display unit stats
-                            double[] stats = ((ActivePlayer) player).getMyStats(currentMapClicked);
+                            double[] stats = ((ActivePlayer)uiBackend.getPlayer()).getMyStats(currentMapClicked);
                             setInfoBar("Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
                         }
                         //Click on a space after clicking on a unit (complete the move)
-                        else if (((ActivePlayer) player).moving != -1) {
-                            int moving = ((ActivePlayer) player).moving;
+                        else if (((ActivePlayer)uiBackend.getPlayer()).moving != -1) {
+                            int moving = ((ActivePlayer)uiBackend.getPlayer()).moving;
                             for (int move : largestArea) {
-                                int moveCheck = ((ActivePlayer) player).spaceAvaliableMove(move);
+                                int moveCheck = ((ActivePlayer)uiBackend.getPlayer()).spaceAvaliableMove(move);
                                 //Clears the images for spaces around where unit moves from
                                 if (moveCheck == 1) {
                                     clearImage(move);
@@ -560,24 +562,24 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
                                 //clears the image for current space and moves unit to new space
                                 if (move == currentMapClicked && moveCheck == 1 && !movingUnit.checkIfMoved()) {
                                     clearImage(moving);
-                                    ((ActivePlayer) player).sendMove(currentMapClicked, moving);
+                                    ((ActivePlayer)uiBackend.getPlayer()).sendMove(currentMapClicked, moving);
                                     displaySingleUnit(movingUnit, false);
                                     //display cash
                                     setInfoBar("Cash: " + cash);
                                 } else if (moveCheck == 2) {
                                     //I need to un-highlight the unit
-                                    displaySingleUnit(getUnitFromMap(move, false), false);
+                                    displaySingleUnit(uiBackend.getUnitFromMap(move, false), false);
                                     //after its un-highlighted, do combat
                                     // (I un-highlight first in case the attack is out of range)
                                     if (move == currentMapClicked && !movingUnit.checkIfAttacked()) {
                                         UIAttack(movingUnit, moving, move);
                                     }
                                 } else if (moveCheck == 0) {
-                                    displaySingleUnit(getUnitFromMap(move, true), false);
+                                    displaySingleUnit(uiBackend.getUnitFromMap(move, true), false);
                                 }
                             }
                             unitVtown = -1;
-                            ((ActivePlayer) player).moving = -1;
+                            ((ActivePlayer)uiBackend.getPlayer()).moving = -1;
                         }
                     }
                 }
@@ -592,7 +594,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
     private Integer[] getMoves(Unit movingUnit){
         int moveSpeed = movingUnit.getMoveSpeed();
         int gridID = movingUnit.getMapID();
-        return ((ActivePlayer)player).checkArea(gridID, moveSpeed, movingUnit.getUnitID(), uiBackend.getMap(), false);
+        return ((ActivePlayer)uiBackend.getPlayer()).checkArea(gridID, moveSpeed, movingUnit.getUnitID(), uiBackend.getMap(), false);
     }
 
     private Integer[] getAttackRange(Unit movingUnit){
@@ -600,7 +602,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         if(movingUnit instanceof Archer){
             attackRange = 3;
         }
-        return ((ActivePlayer)player).checkArea(movingUnit.getMapID(), attackRange, movingUnit.getUnitID(), uiBackend.getMap(), true);
+        return ((ActivePlayer)uiBackend.getPlayer()).checkArea(movingUnit.getMapID(), attackRange, movingUnit.getUnitID(), uiBackend.getMap(), true);
     }
 
     private void UIAttack(Unit movingUnit, int attackerGridID, int defenderGridID){
@@ -608,7 +610,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         //if enemy if outside of attack range, it will return without attempting an attack
         for(int index : possibleAttacks){
             if(defenderGridID == index){
-                String attackResults = ((ActivePlayer)player).attack(defenderGridID, attackerGridID, uiBackend.getMap());
+                String attackResults = ((ActivePlayer)uiBackend.getPlayer()).attack(defenderGridID, attackerGridID, uiBackend.getMap());
                 if (attackResults.equals("Fail")) {
                     clearImage(attackerGridID);
                 } else if (attackResults.equals("Success")) {
@@ -618,30 +620,6 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
                 break;
             }
         }
-    }
-
-
-    /**
-     * helper for the buttons
-     * @param mapID mapID of the space to be checked for a unit
-     * @return the friendly unit corresponding to the space clicked, or null if there is no match
-     */
-    private Unit getUnitFromMap(final int mapID, boolean friendly){
-        if(friendly) {
-            for (int i = 0; i < player.getMyUnits().size(); i++) {
-                if (player.getMyUnits().get(i).getMapID() == mapID) {
-                    return player.getMyUnits().get(i);
-                }
-            }
-        }
-        else{
-            for(int i = 0; i < player.getEnemyUnits().size(); i++){
-                if(player.getEnemyUnits().get(i).getMapID() == mapID){
-                    return player.getEnemyUnits().get(i);
-                }
-            }
-        }
-        return null;
     }
 
     private void displaySingleUnit(Unit unit, boolean selected){
@@ -701,8 +679,6 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
                 else
                     unitDrawableID = R.drawable.unit_general_hostile;
                 break;
-            default:
-                break;
         }
 
         HexagonMaskView image = getImage(unit.getMapID());
@@ -711,10 +687,8 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
 
     private void createUnit(int mapID, int unitID){
         ClientComm comm = new ClientComm(getApplicationContext());
-        // This doesnt really matter, as if a unit is actually made, it will be overritten,
-        // but it keeps me from getting errors later
-        Unit newUnit = new Archer(mapID, unitID, username,300.0);
-        String message = "";
+        Unit newUnit;
+        String message;
         int cost;
         switch(unitID){
             case 1:
@@ -748,10 +722,10 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         if(cash <= cost) {
             cash -= cost;
             message = message + " has been recruited.";
-            newUnit.moveUnit(mapID); //Didn't actually move, but sets its moved boolean
+            //Didn't actually move, but sets its moved boolean because new units cant move
+            newUnit.moveUnit(mapID);
             newUnit.setHasAttacked(); //ensure the new unit doesn't attack
-            player.getMyUnits().add(newUnit);
-//            myArmy.add(newUnit);
+            uiBackend.getPlayer().getMyUnits().put(mapID, newUnit);
             //set unit image
             displaySingleUnit(newUnit, false);
 
@@ -790,7 +764,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
     @Override
     public void onBackPressed(){
         if(!uiBackend.playerIsActive()){
-            ((InactivePlayer) player).killPoll();
+            ((InactivePlayer)uiBackend.getPlayer()).killPoll();
         }
         Intent intent = new Intent(getApplicationContext(), com.example.bakes.login_menu.Menu.class);
         intent.putExtra("username", username);
@@ -851,7 +825,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
             if(activePlayerName.equals("null")){
                 endText.setText("Need additional player to start game");
             }
-            else if(((InactivePlayer)player).isSpectator()){
+            else if(((InactivePlayer)uiBackend.getPlayer()).isSpectator()){
                 endText.setText(activePlayerName + " is currently playing");
             }
             else {
@@ -860,8 +834,8 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
             endMenu.showAtLocation(scroller, Gravity.BOTTOM, 0, 400);
         }
         clearMap();
-        updateUnits(player.getMyUnits(),true);
-        updateUnits(player.getEnemyUnits(), false);
+        updateUnits(true);
+        updateUnits(false);
     }
 
     @Override
