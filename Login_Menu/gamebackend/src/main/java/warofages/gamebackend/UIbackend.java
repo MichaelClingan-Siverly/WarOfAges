@@ -6,11 +6,11 @@ import android.util.SparseArray;
 
 import org.json.JSONArray;
 
-import java.util.HashMap;
 import java.util.Scanner;
 
 import coms309.mike.clientcomm.ClientComm;
 import coms309.mike.clientcomm.VolleyCallback;
+import coms309.mike.units.RangedUnit;
 import coms309.mike.units.Unit;
 
 /**
@@ -26,12 +26,15 @@ public class UIbackend {
     private DisplaysChanges UI;
     private ClientComm comm;
     private int[] terrainMap;
+    private int mapIdManipulated;
     private Player player;
+
     public UIbackend(Context context, String myName, DisplaysChanges ui){
         player = new InactivePlayer(myName, context, ui);
         UI = ui;
         comm = new ClientComm(context);
         towns = new SparseArray<>();
+        mapIdManipulated = -1;
         //TODO constructor
     }
 
@@ -94,6 +97,7 @@ public class UIbackend {
             return terrainMap[index];
         return -1;
     }
+
     public int[] getMap(){
         return terrainMap;
     }
@@ -146,17 +150,92 @@ public class UIbackend {
      * @return the friendly/hostile unit corresponding to the space clicked, or null if there is no match
      */
     public Unit getUnitFromMap(final int mapID, boolean friendly){
-        if(friendly)
+        if(mapID < 0 || mapID >= terrainMap.length)
+            return null;
+        else if(friendly)
             return player.getFriendlyUnit(mapID);
         else
             return player.getEnemyUnit(mapID);
+    }
+
+    public Integer[] getMoves(int mapID){
+        Unit u = getUnitFromMap(mapID, true);
+        int moveSpeed = u.getMoveSpeed();
+        int gridID = u.getMapID();
+        return ((ActivePlayer)player).checkArea(gridID, moveSpeed, u.getUnitID(), terrainMap, false);
+    }
+
+    public Integer[] getAttackRange(int mapID){
+        int attackRange;
+        Unit u = getUnitFromMap(mapID, true);
+        if(u instanceof RangedUnit)
+            attackRange = ((RangedUnit) u).getAttackRange();
+        else
+            attackRange = 1;
+
+        return ((ActivePlayer)player).checkArea(u.getMapID(), attackRange, u.getUnitID(), terrainMap, true);
     }
 
     public void helpWithMapClicks(){
 
     }
 
-    public void helpWithTownMenuClicks(){
+    public void resetMapIdManipulated(){
+        mapIdManipulated = -1;
+    }
 
+    public void helpWithTownMenuClicks(int unitIdToAdd){
+        Unit movingUnit = getUnitFromMap(mapIdManipulated, true);
+        if(movingUnit != null && !movingUnit.checkIfMoved()){
+            //take all surrounding tiles and add unit to first empty one
+            Integer[] moves = ((ActivePlayer)player).checkArea(mapIdManipulated, 1, unitIdToAdd, terrainMap, false);
+            for (int move : moves) {
+                if ((move > -1) && (move < terrainMap.length) && ((ActivePlayer)player).spaceAvaliableMove(move) == 1
+                        && getTerrainAtLocation(move) != 6
+                        && !(unitIdToAdd == 5 && getTerrainAtLocation(move) == 4)
+                        && !(unitIdToAdd == 2 && getTerrainAtLocation(move) == 4)) {
+                    //creates unit and sends it to server
+                    //TODO I have this marked in UI to move out of it
+                    createUnit(move, unitIDtoAdd);
+                    // don't actually move the unit, but dont let it move anymore
+                    movingUnit.moveUnit(movingUnit.getMapID());
+                    //close popup
+                    resetMapIdManipulated();
+                    return;
+                }
+            }
+        }
+        //no empty space found to recruit on or recruiting unit has already moved
+        resetMapIdManipulated();
+    }
+
+    public void beginMoveOrAttack(){
+        Unit movingUnit = getUnitFromMap(mapIdManipulated, true);
+        Integer moves[] = getMoves(mapIdManipulated);
+        Integer attacks[] = getAttackRange(mapIdManipulated);
+        Integer largestArea[];
+
+        if (moves.length > attacks.length && movingUnit != null && !movingUnit.checkIfMoved()) {
+            largestArea = moves;
+        } else {
+            largestArea = attacks;
+        }
+        //highlight surrounding area
+        for (int move : largestArea) {
+            int moveCheck = ((ActivePlayer)player).spaceAvaliableMove(move);
+            //I removed the moveCheck == 0 part. if there is noMove, why was it being highlighted?
+            if (moveCheck == 1)
+                UI.displayForeground(move, 0, true, true);
+            else if (moveCheck == 2)
+                UI.displayForeground(move, getUnitFromMap(move, false).getUnitID(), false, true);
+        }
+        //current location of unit in the terrain map
+        ((ActivePlayer)player).moving = mapIdManipulated;
+        //display unit stats
+        double[] stats = ((ActivePlayer)player).getMyStats(mapIdManipulated);
+        UI.setInfoBar("Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
+        //close menu
+        resetMapIdManipulated();
+        ((ActivePlayer) player).moving = mapIdManipulated;
     }
 }

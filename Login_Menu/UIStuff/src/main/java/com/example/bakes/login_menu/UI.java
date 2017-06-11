@@ -397,68 +397,21 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
     View.OnClickListener townMenuListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            uiBackend.helpWithTownMenuClicks();
-            Unit movingUnit = uiBackend.getUnitFromMap(unitVtown, true);
-
-            if (v.getId() == MOVE_ICON_ID) {//clicked on move button
-                // TODO: I have this little bit in a few places. feels sloppy, but all of UI feels slopy
-                Integer moves[] = getMoves(movingUnit);
-                Integer attacks[] = getAttackRange(movingUnit);
-                Integer largestArea[];
-                if (moves.length > attacks.length && movingUnit != null && !movingUnit.checkIfMoved()) {
-                    largestArea = moves;
-                } else {
-                    largestArea = attacks;
-                }
-                //highlight surrounding area
-                for (int move : largestArea) {
-                    int moveCheck = ((ActivePlayer)uiBackend.getPlayer()).spaceAvaliableMove(move);
-                    if (moveCheck == 0) {
-                        displaySingleUnit(uiBackend.getUnitFromMap(move, true), true);
-                    } else if (moveCheck == 1) {
-                        ImageView image = (ImageView) findViewById(move + mapSize);
-                        image.setImageResource(R.drawable.selected_tile);
-                    } else if (moveCheck == 2) {
-                        displaySingleUnit(uiBackend.getUnitFromMap(move, false), true);
-                    }
-                }
-                //display unit stats
-                double[] stats = ((ActivePlayer)uiBackend.getPlayer()).getMyStats(unitVtown);
-                setInfoBar("Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
-                //current location of unit in the terrain map
-                ((ActivePlayer)uiBackend.getPlayer()).moving = unitVtown;
-                //close menu
-                unitVtown = -2;
-                townMenu.dismiss();
-            }
-            else if (v.getId() > MOVE_ICON_ID && movingUnit != null && !movingUnit.checkIfMoved()) {//clicked on one of the add unit buttons
-                //take all surrounding tiles and add unit to first empty one
+            //clicked on move button
+            if (v.getId() == MOVE_ICON_ID)
+                uiBackend.beginMoveOrAttack();
+            //clicked on one of the add unit buttons
+            else if (v.getId() > MOVE_ICON_ID) {
                 int unitIDtoAdd = v.getId() - MOVE_ICON_ID;
-                //surrounding tiles
-                Integer[] moves = ((ActivePlayer)uiBackend.getPlayer()).checkArea(unitVtown, 1, unitIDtoAdd, uiBackend.getMap(), false);
-                for (int move : moves) {
-                    if ((move > -1) && (move < mapSize) && ((ActivePlayer)uiBackend.getPlayer()).spaceAvaliableMove(move) == 1
-                            && uiBackend.getTerrainAtLocation(move) != 6
-                            && !(unitIDtoAdd == 5 && uiBackend.getTerrainAtLocation(move) == 4)
-                            && !(unitIDtoAdd == 2 && uiBackend.getTerrainAtLocation(move) == 4)) {
-                        //creates unit and sends it to server
-                        createUnit(move, unitIDtoAdd);
-                        // don't actually move the unit, but dont let it move anymore
-                        movingUnit.moveUnit(movingUnit.getMapID());
-                        //close popup
-                        unitVtown = -1;
-                        townMenu.dismiss();
-                        break;
-                    }
-                    //if not empty space, close without adding unit
-                    unitVtown = -1;
-                    townMenu.dismiss();
-                }
-            } else {
-                //if anything other than popup clicked on, close popup
-                unitVtown = -1;
-                townMenu.dismiss();
+                uiBackend.helpWithTownMenuClicks(unitIDtoAdd);
             }
+            /*  if user didn't click on move or unit icons, they must have pressed the map or
+             *  something, in which case this listener shouldn't have been notified so this shouldn't happen
+             */
+            else
+                uiBackend.resetMapIdManipulated();
+            //close menu regardless of the user's choice
+            townMenu.dismiss();
         }
     };
 
@@ -468,7 +421,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         public void onClick(View v){
             if(gameOn) {
                 //increases size of map when clicked button is increase size button
-                 if (uiBackend.playerIsActive()) {
+                if (uiBackend.playerIsActive()) {
                     //end turn button
                     if (R.id.endTurn == v.getId()) {
                         endTurn();
@@ -477,10 +430,12 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
                     int currentMapClicked = v.getId() - mapSize;
                     //Get the unit thats moving (only from myArmy), so I can get its movespeed and stuff
                     Unit movingUnit;
-                     Unit enemyUnit = null;
+                    Unit enemyUnit = null;
+
                     if (((ActivePlayer)uiBackend.getPlayer()).moving == -1) {
                         movingUnit = uiBackend.getUnitFromMap(currentMapClicked, true);
-                    } else {
+                    }
+                    else {
                         movingUnit = uiBackend.getUnitFromMap(((ActivePlayer)uiBackend.getPlayer()).moving, true);
                     }
                     if (movingUnit != null && movingUnit.checkIfMoved() && movingUnit.checkIfAttacked()) {
@@ -494,7 +449,8 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
                         //display unit stats
                         double[] stats = ((ActivePlayer)uiBackend.getPlayer()).getEnemyStats(currentMapClicked);
                         setInfoBar("Enemy Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
-                    }//if click on empty space, display cash
+                    }
+                    //if click on empty space, display cash
                     else if ((movingUnit == null) && (v.getId() < MOVE_ICON_ID)) {
                         //display cash
                         setInfoBar("Cash: " + cash);
@@ -507,22 +463,20 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
                         ScrollView scroll = (ScrollView) findViewById(R.id.scroll);
                         townMenu.showAtLocation(scroll, Gravity.TOP, 0, 500);
                         unitVtown = currentMapClicked;
-                    }//town menu interactions
-                    else if (unitVtown > -1) {
-
                     }
                     /*
                         The difference between the mapIDs and buttonIDs are mapSize (mapID1 = buttonID1 + mapSize)
                         so there will be a lot adding and subtracting mapSize below, as needed to perform the actions.
                     */
+                    //TODO this is moving units, so I should be able to reuse code already in UIbackend
                     else if (unitVtown < 0) {
                         //must be careful not to get nullPointerExceptions if I click on an empty space.
                         if (movingUnit == null) {
                             unitVtown = -1;
                             return;
                         }
-                        Integer moves[] = getMoves(movingUnit);
-                        Integer attacks[] = getAttackRange(movingUnit);
+                        Integer moves[] = uiBackend.getMoves(unitVtown);
+                        Integer attacks[] = uiBackend.getAttackRange(unitVtown);
                         Integer largestArea[];
                         //even if moves are larger than attacks, doesnt matter if unit already moved
                         if (moves.length > attacks.length && !movingUnit.checkIfMoved()) {
@@ -591,22 +545,8 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         }
     };
 
-    private Integer[] getMoves(Unit movingUnit){
-        int moveSpeed = movingUnit.getMoveSpeed();
-        int gridID = movingUnit.getMapID();
-        return ((ActivePlayer)uiBackend.getPlayer()).checkArea(gridID, moveSpeed, movingUnit.getUnitID(), uiBackend.getMap(), false);
-    }
-
-    private Integer[] getAttackRange(Unit movingUnit){
-        int attackRange = 1;
-        if(movingUnit instanceof Archer){
-            attackRange = 3;
-        }
-        return ((ActivePlayer)uiBackend.getPlayer()).checkArea(movingUnit.getMapID(), attackRange, movingUnit.getUnitID(), uiBackend.getMap(), true);
-    }
-
     private void UIAttack(Unit movingUnit, int attackerGridID, int defenderGridID){
-        Integer possibleAttacks[] = getAttackRange(movingUnit);
+        Integer possibleAttacks[] = uiBackend.getAttackRange(movingUnit.getMapID());
         //if enemy if outside of attack range, it will return without attempting an attack
         for(int index : possibleAttacks){
             if(defenderGridID == index){
@@ -620,6 +560,69 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
                 break;
             }
         }
+    }
+
+    public void displayForeground(int mapID, int unitID, boolean friendly, boolean selected){
+        int drawableID;
+        switch(unitID){
+            case 0:
+                drawableID = R.drawable.selected_tile;
+                break;
+            case 1: //archer
+                if(friendly && selected)
+                    drawableID = R.drawable.unit_archer_friendly_selected;
+                else if(friendly)
+                    drawableID = R.drawable.unit_archer_friendly;
+                else if(selected)
+                    drawableID = R.drawable.unit_archer_hostile_selected;
+                else
+                    drawableID = R.drawable.unit_archer_hostile;
+                break;
+            case 2: //cavalry
+                if(friendly && selected)
+                    drawableID = R.drawable.unit_cavalry_friendly_selected;
+                else if(friendly)
+                    drawableID = R.drawable.unit_cavalry_friendly;
+                else if(selected)
+                    drawableID = R.drawable.unit_cavalry_hostile_selected;
+                else
+                    drawableID = R.drawable.unit_cavalry_hostile;
+                break;
+            case 3: //swordsman
+                if(friendly && selected)
+                    drawableID = R.drawable.unit_sword_friendly_selected;
+                else if(friendly)
+                    drawableID = R.drawable.unit_sword_friendly;
+                else if(selected)
+                    drawableID = R.drawable.unit_sword_hostile_selected;
+                else
+                    drawableID = R.drawable.unit_sword_hostile;
+                break;
+            case 4: //spearman
+                if(friendly && selected)
+                    drawableID = R.drawable.unit_spear_friendly_selected;
+                else if(friendly)
+                    drawableID = R.drawable.unit_spear_friendly;
+                else if(selected)
+                    drawableID = R.drawable.unit_spear_hostile_selected;
+                else
+                    drawableID = R.drawable.unit_spear_hostile;
+                break;
+            case 5: //general
+                if(friendly && selected)
+                    drawableID = R.drawable.unit_general_friendly_selected;
+                else if(friendly)
+                    drawableID = R.drawable.unit_general_friendly;
+                else if(selected)
+                    drawableID = R.drawable.unit_general_hostile_selected;
+                else
+                    drawableID = R.drawable.unit_general_hostile;
+                break;
+            default:
+                return;
+        }
+        HexagonMaskView image = getImage(mapID);
+        image.setForeground(getDrawable(drawableID));
     }
 
     private void displaySingleUnit(Unit unit, boolean selected){
@@ -685,6 +688,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         image.setForeground(getDrawable(unitDrawableID));
     }
 
+    //TODO move this to backend
     private void createUnit(int mapID, int unitID){
         ClientComm comm = new ClientComm(getApplicationContext());
         Unit newUnit;
@@ -787,10 +791,16 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         }
         super.onDestroy();
     }
-    private void setInfoBar(String text){
+
+    public void setInfoBar(String text){
         TextView info = (TextView) findViewById(R.id.infoBar);
         info.setText(text);
     }
+
+    public void makeToast(String text){
+        Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
+    }
+
     private void beginTurnMakeMoney(){
 //        player.setCash(oldCashAmount + 50);
 //        player.cash = oldCashAmount + player.incrementCash(terrainMap);

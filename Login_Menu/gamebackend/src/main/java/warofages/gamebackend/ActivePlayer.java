@@ -123,26 +123,14 @@ public class ActivePlayer extends Player {
                     }
                     else if(terrainType != 6){
                         switch(unitType){
-                            case 1: //archer
-                                list.add((y * rowlength)+x);
-                                break;
                             case 2: //cavalry
-                                if(terrainType != 2 && terrainType != 4){
-                                    list.add((y * rowlength)+x);
-                                }
-                                break;
-                            case 3: //sword
-                                list.add((y * rowlength)+x);
-                                break;
-                            case 4: //spear
-                                list.add((y * rowlength)+x);
-                                break;
                             case 5: //general
                                 if(terrainType != 2 && terrainType != 4){
                                     list.add((y * rowlength)+x);
                                 }
                                 break;
-                            default:
+                            default: //non-mounted units
+                                list.add((y * rowlength)+x);
                                 break;
                         }
                     }

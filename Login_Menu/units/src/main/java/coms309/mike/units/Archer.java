@@ -5,10 +5,10 @@ package coms309.mike.units;
  */
 
 
-public class Archer extends Unit {
+public class Archer extends RangedUnit {
 
     public Archer(int mapID, int unitID, String ownerID,double health){
-        super(mapID, unitID, ownerID,2,health,66.66666, 0.10);
+        super(mapID, unitID, ownerID,2,health,66.66666, 3, 0.10);
     }
 
 
