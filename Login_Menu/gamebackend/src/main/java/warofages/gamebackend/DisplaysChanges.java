@@ -13,6 +13,9 @@ public interface DisplaysChanges {
 
     void continueAfterTerrainLoaded();
 
+    void displayTownMenu();
+    void dismissTownMenu();
+
     /**
      * used for showing information to the player. Lasts until changed, so is much more permanent than a toast
      * @param text the test to be displayed
@@ -28,7 +31,8 @@ public interface DisplaysChanges {
      *               3 if sword, 4 if spear, 5 if general
      * @param friendly indicate if a friendly or hostile unit is to be displayed.
      *                 if unitID = 0, this value is ignored
-     * @param selected indicate if the foreground is to be highlighted
+     * @param selected indicate if the foreground is to be highlighted.
+     *                 If false it will remove the foreground from the terrain
      */
     void displayForeground(int mapID, int unitID, boolean friendly, boolean selected);
 

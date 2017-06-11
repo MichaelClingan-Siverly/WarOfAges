@@ -350,6 +350,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         switch (v.getId()){
             case R.id.endTurn:
                 if(gameOn){
+                    //TODO move this to backend
                     endTurn();
                     return;
                 }
@@ -401,9 +402,10 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
             if (v.getId() == MOVE_ICON_ID)
                 uiBackend.beginMoveOrAttack();
             //clicked on one of the add unit buttons
+            //TODO eventually towns will be able to recruit without a friendly unit on it
             else if (v.getId() > MOVE_ICON_ID) {
                 int unitIDtoAdd = v.getId() - MOVE_ICON_ID;
-                uiBackend.helpWithTownMenuClicks(unitIDtoAdd);
+                uiBackend.recruitFromTownMenu(unitIDtoAdd);
             }
             /*  if user didn't click on move or unit icons, they must have pressed the map or
              *  something, in which case this listener shouldn't have been notified so this shouldn't happen
@@ -420,17 +422,13 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         @Override
         public void onClick(View v){
             if(gameOn) {
-                //increases size of map when clicked button is increase size button
                 if (uiBackend.playerIsActive()) {
-                    //end turn button
-                    if (R.id.endTurn == v.getId()) {
-                        endTurn();
-                        return;
-                    }
-                    int currentMapClicked = v.getId() - mapSize;
+                    int currentMapClicked = v.getId();
+
+                    uiBackend.helpWithMapClicks(v.getId());
+
                     //Get the unit thats moving (only from myArmy), so I can get its movespeed and stuff
                     Unit movingUnit;
-                    Unit enemyUnit = null;
 
                     if (((ActivePlayer)uiBackend.getPlayer()).moving == -1) {
                         movingUnit = uiBackend.getUnitFromMap(currentMapClicked, true);
@@ -441,19 +439,18 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
                     if (movingUnit != null && movingUnit.checkIfMoved() && movingUnit.checkIfAttacked()) {
                         movingUnit = null;
                     }
+                    //if a friendly unit was not selected, display either cash or an enemy unit's stats
                     if (movingUnit == null) {
-                        enemyUnit = uiBackend.getUnitFromMap(currentMapClicked, false);
-                    }
-                    //if click on enemy unit, display its stats
-                    if (enemyUnit != null) {
-                        //display unit stats
-                        double[] stats = ((ActivePlayer)uiBackend.getPlayer()).getEnemyStats(currentMapClicked);
-                        setInfoBar("Enemy Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
-                    }
-                    //if click on empty space, display cash
-                    else if ((movingUnit == null) && (v.getId() < MOVE_ICON_ID)) {
-                        //display cash
-                        setInfoBar("Cash: " + cash);
+                        Unit enemyUnit = uiBackend.getUnitFromMap(currentMapClicked, false);
+                        //if click on enemy unit, display its stats
+                        if (enemyUnit != null) {
+                            //display unit stats
+                            double[] stats = ((ActivePlayer)uiBackend.getPlayer()).getEnemyStats(currentMapClicked);
+                            setInfoBar("Enemy Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
+                        }
+                        //if there was no enemy unit there, display cash instead
+                        else
+                            setInfoBar("Cash: " + cash);
                     }
                     //if friendly unit on a town and you click it, open town menu
                     else if (currentMapClicked >= 0 && currentMapClicked <= mapSize - 1 &&
@@ -513,6 +510,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
                                 if (moveCheck == 1) {
                                     clearImage(move);
                                 }
+                                //TODO im at this point
                                 //clears the image for current space and moves unit to new space
                                 if (move == currentMapClicked && moveCheck == 1 && !movingUnit.checkIfMoved()) {
                                     clearImage(moving);
@@ -562,11 +560,23 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         }
     }
 
+    public void displayTownMenu(){
+        ScrollView scroll = (ScrollView) findViewById(R.id.scroll);
+        townMenu.showAtLocation(scroll, Gravity.TOP, 0, 500);
+    }
+
+    public void dismissTownMenu(){
+        townMenu.dismiss();
+    }
+
     public void displayForeground(int mapID, int unitID, boolean friendly, boolean selected){
         int drawableID;
         switch(unitID){
             case 0:
-                drawableID = R.drawable.selected_tile;
+                if(selected)
+                    drawableID = R.drawable.selected_tile;
+                else
+                    drawableID = -1;
                 break;
             case 1: //archer
                 if(friendly && selected)
@@ -622,7 +632,10 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
                 return;
         }
         HexagonMaskView image = getImage(mapID);
-        image.setForeground(getDrawable(drawableID));
+        if(drawableID != -1)
+            image.setForeground(getDrawable(drawableID));
+        else
+            image.setForeground(null);
     }
 
     private void displaySingleUnit(Unit unit, boolean selected){
