@@ -15,25 +15,26 @@ import coms309.mike.units.General;
 import coms309.mike.units.Spearman;
 import coms309.mike.units.Swordsman;
 import coms309.mike.units.Unit;
-import warofages.gamebackend.AsyncResultHandler;
-import warofages.gamebackend.DisplaysChanges;
-import warofages.gamebackend.PollServerTask;
 
 /**
+ * Class used ostly for polling the server and converting JSON to/from more useful formats,
+ * since other classes do not receive anything quite as extensive
  * Created by Mike on 10/29/2016.
  */
 
-public class InactivePlayer extends Player implements AsyncResultHandler {
+public class InactivePlayer extends Player{
     //This array is compared to the results from the server.
     //I only have one inactive player at a time. NOTE: I did not make this a singleton, so that is not enforced in this class.
     private JSONArray playerAndUnits;
     private PollServerTask poll;
     private boolean isSpectator = false;
+    private final int STARTING_CASH = 1000;
 
     public InactivePlayer(String myName, Context context, DisplaysChanges ui){
-        //First thing: construct the superclass.
+        //First thing: construct the superclass. Could not make the 1000 a final variable, but it's starting cash
         super(context, myName, ui);
         playerAndUnits = new JSONArray();
+        setCash(STARTING_CASH);
     }
 
     public InactivePlayer(Player oldPlayer){
@@ -44,11 +45,11 @@ public class InactivePlayer extends Player implements AsyncResultHandler {
     }
 
     //UI isn't really final. It has static values which are changed inside. But it makes me say its final
-    public void waitForTurn() {
+    public void waitForTurn(AsyncResultHandler backend) {
         //initialize the static json array with json objects of units.
         convertToJson();
 
-        poll = new PollServerTask(playerAndUnits, this);
+        poll = new PollServerTask(playerAndUnits, backend);
         poll.execute(context);
         /*
             only finishes when I'm now the active player
@@ -62,10 +63,6 @@ public class InactivePlayer extends Player implements AsyncResultHandler {
 
     public boolean isSpectator(){
         return isSpectator;
-    }
-
-    public DisplaysChanges getUI(){
-        return ui;
     }
 
     /*
@@ -146,6 +143,39 @@ public class InactivePlayer extends Player implements AsyncResultHandler {
         }
     }
 
+    /**
+     * adjusts values in this class based on the JSONArray parameter
+     * @param jsonArray a JSONArray presumed to have been received by the caller from the server
+     *             also presumed to not have been changed by the caller
+     * @return true if the player should be changed to active, false otherwise
+     */
+    public boolean receiveNewJSON(JSONArray jsonArray){
+        playerAndUnits = jsonArray;
+        convertArmyFromJSON(true);
+        convertArmyFromJSON(false);
+        //units update everytime a poll is answered
+        checkIfSpectator();
+
+        try {
+            //creates the active player originally attempted in UI after waitForTurn is called.
+            //Having it here forces us to wait until I'm actually the active player before I become active
+            if (jsonArray.getJSONObject(0).getString("userID").equals(myName)) {
+                killPoll();
+                //let caller know the player may now become active
+                return true;
+            }
+            else{
+                JSONObject needToReplaceName = new JSONObject();
+                needToReplaceName.put("userID", myName);
+                playerAndUnits.put(0, needToReplaceName);
+            }
+        }
+        catch(JSONException e){
+            Log.d("JSONException", e.getLocalizedMessage());
+        }
+        return false;
+    }
+
     private void addUnit(String owner, int mapID, int unitID, double unitHealth){
         Unit unit;
         switch(unitID){
@@ -174,33 +204,5 @@ public class InactivePlayer extends Player implements AsyncResultHandler {
             else
                 enemyUnits.put(mapID, unit);
         }
-    }
-
-    @Override
-    public void handlePollResult(JSONArray result) {
-        playerAndUnits = result;
-        convertArmyFromJSON(true);
-        convertArmyFromJSON(false);
-        //units update everytime a poll is answered
-        checkIfSpectator();
-
-        try {
-            //creates the active player originally attempted in UI after waitForTurn is called.
-            //Having it here forces us to wait until I'm actually the active player before I become active
-            if (result.getJSONObject(0).getString("userID").equals(myName)) {
-                killPoll();
-                //TODO become active player
-            }
-            else{
-                JSONObject needToReplaceName = new JSONObject();
-                needToReplaceName.put("userID", myName);
-                playerAndUnits.put(0, needToReplaceName);
-            }
-        }
-        catch(JSONException e){
-            Log.d("JSONException", e.getLocalizedMessage());
-        }
-        //now all I have to do is display the changes
-        ui.displayPollResult(playerAndUnits);
     }
 }

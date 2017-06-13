@@ -9,7 +9,7 @@ import org.json.JSONArray;
 
 public interface DisplaysChanges {
 
-    void displayPollResult(JSONArray result);
+    void displayPollResult();
 
     void continueAfterTerrainLoaded();
 
@@ -17,12 +17,20 @@ public interface DisplaysChanges {
     void dismissTownMenu();
 
     /**
-     * used for showing information to the player. Lasts until changed, so is much more permanent than a toast
+     * Used for showing information to the player. Intended to be shows as response to user input.
+     * Lasts until changed, so is much more permanent than a toast.
      * @param text the test to be displayed
      */
     void setInfoBar(String text);
-
     void makeToast(String text);
+
+    /**
+     * Used for showing information about the game state to the player. Lasts until dismissed.
+     * May not be shown as a result of user input.
+     * @param text text to be displayed
+     */
+    void setEndText(String text);
+    void dismissEndText();
 
     /**
      * displays a unit and/or selection highlight as a foreground over terrain

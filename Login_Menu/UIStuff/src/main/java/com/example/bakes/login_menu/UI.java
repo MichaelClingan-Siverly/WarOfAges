@@ -150,26 +150,6 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         return unitIDs;
     }
 
-    private void finishSettingUp(){
-        //get passed in username
-        Intent intent = getIntent();
-
-        //players start game with 1000 cash
-//        player.setCash(1000);
-        cash = 1000;
-
-        //display cash
-        setInfoBar("Cash: " + cash);
-
-        //Only players call this. Spectators do not need to get players.
-        if(!intent.hasExtra("spectator")){
-            Log.d("game start", "calling getPlayers");
-            getPlayers();
-        }
-
-        uiBackend.waitForTurn();
-    }
-
     //Create table of any size(must be square)
     private void createTerrainButtons(){
         //Creates an initial row
@@ -227,7 +207,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
     }
 
     //gets players from server
-    private void getPlayers(){
+    private void readyToStart(){
         ClientComm comm = new ClientComm(getApplicationContext());
         JSONArray nameArray = new JSONArray();
         JSONObject nameObject = new JSONObject();
@@ -241,8 +221,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         comm.serverPostRequest("getPlayers.php", nameArray, new VolleyCallback<JSONArray>() {
             @Override
             public void onSuccess(JSONArray result) {
-                //don't need to do anything here. But I check code for testing purposes
-                Log.d("getPlayers result", result.toString());
+                //Nothing needs to be done. getPlayers.php only tells the server that I'm a player, not spectator
             }
         });
     }
@@ -325,23 +304,9 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
             comm.serverPostRequest("checkActivePlayer.php", new JSONArray(), new VolleyCallback<JSONArray>() {
                 @Override
                 public void onSuccess(JSONArray result) {
-                    endTurnHelper();
+                    uiBackend.endTurn();
                 }
             });
-
-        }
-    }
-    //because I can't access this UI's instance from the onSuccess inner Class
-    private void endTurnHelper(){
-        String end = uiBackend.checkIfGameOver();
-        if(end.equals("Game in Progress")){
-            setInfoBar("Cash: " + cash);
-//            player = new InactivePlayer(player);
-//            ((InactivePlayer)player).waitForTurn();
-        }
-        else{
-            gameOn = false;
-            setInfoBar(end);
         }
     }
 
@@ -421,125 +386,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
     View.OnClickListener gameClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v){
-            if(gameOn) {
-                if (uiBackend.playerIsActive()) {
-                    int currentMapClicked = v.getId();
-
-                    uiBackend.helpWithMapClicks(v.getId());
-
-                    //Get the unit thats moving (only from myArmy), so I can get its movespeed and stuff
-                    Unit movingUnit;
-
-                    if (((ActivePlayer)uiBackend.getPlayer()).moving == -1) {
-                        movingUnit = uiBackend.getUnitFromMap(currentMapClicked, true);
-                    }
-                    else {
-                        movingUnit = uiBackend.getUnitFromMap(((ActivePlayer)uiBackend.getPlayer()).moving, true);
-                    }
-                    if (movingUnit != null && movingUnit.checkIfMoved() && movingUnit.checkIfAttacked()) {
-                        movingUnit = null;
-                    }
-                    //if a friendly unit was not selected, display either cash or an enemy unit's stats
-                    if (movingUnit == null) {
-                        Unit enemyUnit = uiBackend.getUnitFromMap(currentMapClicked, false);
-                        //if click on enemy unit, display its stats
-                        if (enemyUnit != null) {
-                            //display unit stats
-                            double[] stats = ((ActivePlayer)uiBackend.getPlayer()).getEnemyStats(currentMapClicked);
-                            setInfoBar("Enemy Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
-                        }
-                        //if there was no enemy unit there, display cash instead
-                        else
-                            setInfoBar("Cash: " + cash);
-                    }
-                    //if friendly unit on a town and you click it, open town menu
-                    else if (currentMapClicked >= 0 && currentMapClicked <= mapSize - 1 &&
-                            uiBackend.getTerrainAtLocation(currentMapClicked) == 5 && (unitVtown == -1) &&
-                            (movingUnit != null) && (((ActivePlayer)uiBackend.getPlayer()).moving == -1)) {
-
-                        ScrollView scroll = (ScrollView) findViewById(R.id.scroll);
-                        townMenu.showAtLocation(scroll, Gravity.TOP, 0, 500);
-                        unitVtown = currentMapClicked;
-                    }
-                    /*
-                        The difference between the mapIDs and buttonIDs are mapSize (mapID1 = buttonID1 + mapSize)
-                        so there will be a lot adding and subtracting mapSize below, as needed to perform the actions.
-                    */
-                    //TODO this is moving units, so I should be able to reuse code already in UIbackend
-                    else if (unitVtown < 0) {
-                        //must be careful not to get nullPointerExceptions if I click on an empty space.
-                        if (movingUnit == null) {
-                            unitVtown = -1;
-                            return;
-                        }
-                        Integer moves[] = uiBackend.getMoves(unitVtown);
-                        Integer attacks[] = uiBackend.getAttackRange(unitVtown);
-                        Integer largestArea[];
-                        //even if moves are larger than attacks, doesnt matter if unit already moved
-                        if (moves.length > attacks.length && !movingUnit.checkIfMoved()) {
-                            largestArea = moves;
-                        } else {
-                            largestArea = attacks;
-                        }
-                        //Click on a unit (initiate a move)
-                        if (((ActivePlayer)uiBackend.getPlayer()).moving == -1) {
-                            for (int move : largestArea) {
-                                int moveCheck = ((ActivePlayer)uiBackend.getPlayer()).spaceAvaliableMove(move);
-                                if (moveCheck == 0) {
-                                    displaySingleUnit(uiBackend.getUnitFromMap(move, true), true);
-                                } else if (moveCheck == 1) {
-                                    ImageView image = (ImageView) findViewById(move + mapSize);
-                                    image.setImageResource(R.drawable.selected_tile);
-                                } else if (moveCheck == 2) {
-                                    displaySingleUnit(uiBackend.getUnitFromMap(move, false), true);
-                                }
-                            }
-                            //current location of unit in the terrain map
-                            ((ActivePlayer)uiBackend.getPlayer()).moving = currentMapClicked;
-
-                            //display unit stats
-                            double[] stats = ((ActivePlayer)uiBackend.getPlayer()).getMyStats(currentMapClicked);
-                            setInfoBar("Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
-                        }
-                        //Click on a space after clicking on a unit (complete the move)
-                        else if (((ActivePlayer)uiBackend.getPlayer()).moving != -1) {
-                            int moving = ((ActivePlayer)uiBackend.getPlayer()).moving;
-                            for (int move : largestArea) {
-                                int moveCheck = ((ActivePlayer)uiBackend.getPlayer()).spaceAvaliableMove(move);
-                                //Clears the images for spaces around where unit moves from
-                                if (moveCheck == 1) {
-                                    clearImage(move);
-                                }
-                                //TODO im at this point
-                                //clears the image for current space and moves unit to new space
-                                if (move == currentMapClicked && moveCheck == 1 && !movingUnit.checkIfMoved()) {
-                                    clearImage(moving);
-                                    ((ActivePlayer)uiBackend.getPlayer()).sendMove(currentMapClicked, moving);
-                                    displaySingleUnit(movingUnit, false);
-                                    //display cash
-                                    setInfoBar("Cash: " + cash);
-                                } else if (moveCheck == 2) {
-                                    //I need to un-highlight the unit
-                                    displaySingleUnit(uiBackend.getUnitFromMap(move, false), false);
-                                    //after its un-highlighted, do combat
-                                    // (I un-highlight first in case the attack is out of range)
-                                    if (move == currentMapClicked && !movingUnit.checkIfAttacked()) {
-                                        UIAttack(movingUnit, moving, move);
-                                    }
-                                } else if (moveCheck == 0) {
-                                    displaySingleUnit(uiBackend.getUnitFromMap(move, true), false);
-                                }
-                            }
-                            unitVtown = -1;
-                            ((ActivePlayer)uiBackend.getPlayer()).moving = -1;
-                        }
-                    }
-                }
-            }
-            else{
-                String end = uiBackend.checkIfGameOver();
-                setInfoBar(end);
-            }
+            uiBackend.helpWithMapClicks(v.getId());
         }
     };
 
@@ -814,48 +661,20 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
     }
 
-    private void beginTurnMakeMoney(){
-//        player.setCash(oldCashAmount + 50);
-//        player.cash = oldCashAmount + player.incrementCash(terrainMap);
-//        player.setCash(oldCashAmount + player.incrementCash(terrainMap));
-        //TODO crashed when incrementCash was called - haven't updated that stuff yet
-//        cash += player.incrementCash(terrainMap);
-        setInfoBar("Cash: " + cash);
+    @Override
+    public void setEndText(String text){
+        endText.setText(text);
+        endMenu.showAtLocation(scroller, Gravity.BOTTOM, 0, 400);
     }
 
     @Override
-    public void displayPollResult(JSONArray result){
-        String activePlayerName;
-        try {
-            activePlayerName = result.getJSONObject(0).getString("userID");
-        }
-        catch(JSONException e){
-            activePlayerName = "null";
-        }
-        //if server says active player is this player, begin turn
-        if(activePlayerName.equals(uiBackend.getPlayer().getName())) {
-            if (endMenu.isShowing()) {
-                endMenu.dismiss();
-            }
-            String end = uiBackend.checkIfGameOver();
-            if (!end.equals("Game in Progress")) {
-                gameOn = false;
-            }
-            beginTurnMakeMoney();
-        }
-        //if active player is not this player, set text of ui popup to show whose turn it is
-        else{
-            if(activePlayerName.equals("null")){
-                endText.setText("Need additional player to start game");
-            }
-            else if(((InactivePlayer)uiBackend.getPlayer()).isSpectator()){
-                endText.setText(activePlayerName + " is currently playing");
-            }
-            else {
-                endText.setText("It is " + activePlayerName + "'s turn.");
-            }
-            endMenu.showAtLocation(scroller, Gravity.BOTTOM, 0, 400);
-        }
+    public void dismissEndText(){
+        if(endMenu.isShowing())
+            endMenu.dismiss();
+    }
+
+    @Override
+    public void displayPollResult(){
         clearMap();
         updateUnits(true);
         updateUnits(false);
@@ -866,6 +685,13 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         mapSize = uiBackend.getMapSize();
         createTerrainButtons();
         loadTerrainToButtons();
-        finishSettingUp();
+
+        //display cash
+        setInfoBar("Cash: " + cash);
+        //Only players call this. Spectators do not need to get players.
+        if(!getIntent().hasExtra("spectator"))
+            readyToStart();
+
+        uiBackend.endTurn();
     }
 }

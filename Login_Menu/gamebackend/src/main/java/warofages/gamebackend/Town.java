@@ -17,6 +17,12 @@ public class Town {
         this.owner = owner;
     }
 
+    public String getOwner(){
+        return owner;
+    }
+    public int getMapID(){
+        return mapID;
+    }
     public void setOwner(String userID){
         owner = userID;
     }

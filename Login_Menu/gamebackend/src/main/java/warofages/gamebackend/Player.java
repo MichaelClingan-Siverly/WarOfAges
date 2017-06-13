@@ -22,7 +22,7 @@ public abstract class Player {
     protected String myName = "a player has no name";
     protected Context context;
     protected DisplaysChanges ui;
-    public static int cash = 0;
+    private int cash;
 
     //I need whatever context this player is in. used for the ClientComm stuff
     @SuppressLint("UseSparseArrays")
@@ -42,13 +42,12 @@ public abstract class Player {
         return cash;
     }
 
-    public int incrementCash(int terrainMap[]){
+    public int incrementCash(SparseArray<Town> towns){
         int addCash = 50; //even with no towns, players gain a base amount of 50
-        for(int i = 0; i < myUnits.size(); i++){
-            //checks if unit is on a town
-            if(terrainMap[myUnits.get(i).getMapID()] == 5){
-                addCash = addCash+50;
-            }
+        for(int i = 0; i < towns.size(); i++){
+            int k = towns.keyAt(i);
+            if(towns.get(k).getOwner().equals(myName))
+                addCash += 50;
         }
         return addCash;
     }

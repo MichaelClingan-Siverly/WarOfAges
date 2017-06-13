@@ -17,7 +17,7 @@ import coms309.mike.units.Unit;
  * Created by mike on 6/2/2017.
  */
 
-public class UIbackend {
+public class UIbackend implements AsyncResultHandler{
     /*  IDE suggested using a SparseArray here. I only add towns once, they aren't removed, and there
         should usually be few of them in comparison to the size of the map. Seems like any performance
         loss would be worth the memory saved
@@ -28,6 +28,8 @@ public class UIbackend {
     private int[] terrainMap;
     private int mapIdManipulated;
     private Player player;
+    private boolean gameOn;
+    private boolean townsAssigned;
 
     public UIbackend(Context context, String myName, DisplaysChanges ui){
         player = new InactivePlayer(myName, context, ui);
@@ -35,6 +37,7 @@ public class UIbackend {
         comm = new ClientComm(context);
         towns = new SparseArray<>();
         mapIdManipulated = -1;
+        townsAssigned = false;
         //TODO constructor
     }
 
@@ -56,14 +59,16 @@ public class UIbackend {
                             int terrainCode = scan.nextInt();
                             terrainMap[tID] = terrainCode;
                             switch(terrainCode){
+                                //TODO I know which towns are friendly/hostile before game starts, but I don't know if I'm friendly or hostile until then
+                                //TODO what I'll probably do is have the server's json return town ownership as well as units
                                 case 5:
-                                    //TODO add friendly town
+                                    addTown(tID, "friendly");
                                     break;
                                 case 6:
-                                    //TODO add hostile town
+                                    addTown(tID, "hostile");
                                     break;
                                 case 7:
-                                    //TODO add neutral town
+                                    addTown(tID, "null");
                                     break;
                             }
 
@@ -82,10 +87,6 @@ public class UIbackend {
         });
     }
 
-    public void waitForTurn(){
-        ((InactivePlayer)player).waitForTurn();
-    }
-
     public int getMapSize(){
         if(terrainMap != null)
             return terrainMap.length;
@@ -102,13 +103,14 @@ public class UIbackend {
         return terrainMap;
     }
 
-    public void addTown(int mapID, String owner){
+    private void addTown(int mapID, String owner){
         Town town;
         if(owner != null)
             town = new Town(mapID, owner);
         else
             town = new Town(mapID);
-        if(!towns.get(mapID).equals(null))
+        //add new town to SparseArray only if there is no other town in it with same key (mapID) - shouldn't happen
+        if(towns.get(mapID) == null)
             towns.put(mapID, town);
     }
 
@@ -124,11 +126,27 @@ public class UIbackend {
         return player instanceof ActivePlayer;
     }
 
-    public void becomeInactive(){
-        if(player instanceof  InactivePlayer){
-            player = new InactivePlayer(player);
-            ((InactivePlayer)player).waitForTurn();
+    public void endTurn(){
+        String end = checkIfGameOver();
+        if(end.equals("Game in Progress")){
+            UI.setInfoBar("Cash: " + player.getCash());
+            if(playerIsActive()) {
+                player = new InactivePlayer(player);
+                ((InactivePlayer) player).waitForTurn(this);
+            }
         }
+        else{
+            gameOn = false;
+            UI.setInfoBar(end);
+        }
+    }
+
+    private void beginTurn(){
+        if(!playerIsActive()) {
+            player = new ActivePlayer(player);
+            player.incrementCash(towns);
+        }
+        UI.setInfoBar("Cash: " + player.getCash());
     }
 
     public String checkIfGameOver(){
@@ -214,6 +232,13 @@ public class UIbackend {
     }
 
     public void helpWithMapClicks(int mapIdClicked){
+        if(!gameOn){
+            UI.setInfoBar(checkIfGameOver());
+            return;
+        }
+        else if(!playerIsActive())
+            return;
+
         Unit movingUnit = getMovingUnit(mapIdClicked);
         Unit enemyUnit = getUnitFromMap(mapIdClicked, false);
 
@@ -242,7 +267,6 @@ public class UIbackend {
                 resetMapIdManipulated();
                 return;
             }
-            Integer[] largestArea = findLargestArea(movingUnit);
             if(((ActivePlayer)player).moving == -1){
                 beginMoveOrAttack();
             }
@@ -252,36 +276,41 @@ public class UIbackend {
         }
     }
 
-    public void finishMoveOrAttack(Unit movingUnit, int mapIdClicked){
+    private void finishMoveOrAttack(Unit movingUnit, int mapIdClicked){
         Integer[] largestArea = findLargestArea(movingUnit);
         int moving = ((ActivePlayer)player).moving;
         for (int move : largestArea) {
+            int mapID = move;
             int moveCheck = ((ActivePlayer)player).spaceAvaliableMove(move);
-            //Clears the images for spaces around where unit moves from
-            if (moveCheck == 1) {
-                UI.displayForeground(move, 0, true, false);
+            int unitID = 0;
+            boolean friendly = true;
+            switch(moveCheck){
+                case 0:
+                    if(getUnitFromMap(move, true) != null)
+                        unitID = getUnitFromMap(move, true).getUnitID();
+                    break;
+                case 1:
+                    if(move == mapIdClicked && !movingUnit.checkIfMoved()){
+                        ((ActivePlayer)player).sendMove(mapIdClicked, moving);
+                        //set the new foreground. It's friendly because I can't move an unfriendly unit
+                        mapID = movingUnit.getMapID();
+                        unitID = movingUnit.getUnitID();
+                        //display cash
+                        UI.setInfoBar("Cash: " + player.getCash());
+                    }
+                    break;
+                case 2:
+                    //un-highlight enemy unit
+                    unitID = getUnitFromMap(move, false).getUnitID();
+                    friendly = false;
+                    //after its un-highlighted, do combat
+                    // (I un-highlight first in case the attack is out of range)
+                    if (move == mapIdClicked && !movingUnit.checkIfAttacked()) {
+                        UIAttack(movingUnit, moving, move);
+                    }
+                    break;
             }
-            //TODO finish this display stuff
-            //clears the image for current space and moves unit to new space
-            if (move == mapIdClicked && moveCheck == 1 && !movingUnit.checkIfMoved()) {
-                ((ActivePlayer)player).sendMove(mapIdClicked, moving);
-                //set the new foreground
-                displaySingleUnit(movingUnit, false);
-                //display cash
-                UI.setInfoBar("Cash: " + player.getCash());
-            }
-            else if (moveCheck == 2) {
-                //I need to un-highlight the unit
-                displaySingleUnit(getUnitFromMap(move, false), false);
-                //after its un-highlighted, do combat
-                // (I un-highlight first in case the attack is out of range)
-                if (move == mapIdClicked && !movingUnit.checkIfAttacked()) {
-                    UIAttack(movingUnit, moving, move);
-                }
-            }
-            else if (moveCheck == 0) {
-                displaySingleUnit(getUnitFromMap(move, true), false);
-            }
+            UI.displayForeground(mapID, unitID, friendly, false);
         }
         resetMapIdManipulated();
         ((ActivePlayer)player).moving = -1;
@@ -327,5 +356,41 @@ public class UIbackend {
             return moves;
         else
             return attacks;
+    }
+
+    //Decided to move a lot of the checks for activePlayer name and stuff to here because I'd like
+    // if the UI didn't need any knowledge of that stuff, and only worked on displaying what its told to
+    @Override
+    public void handlePollResult(JSONArray result){
+        boolean active = false;
+        String activePlayer;
+        //defer JSON work to the InactivePlayer, since its the only one who needs the manipulations
+        if(!playerIsActive()){
+            active = ((InactivePlayer)player).receiveNewJSON(result);
+            String end = checkIfGameOver();
+            if (!end.equals("Game in Progress")) {
+                gameOn = false;
+            }
+            beginTurn();
+        }
+        if(active)
+            activePlayer = player.getName();
+        else
+            activePlayer = player.getEnemyName();
+
+        //now all I have to do is display the changes
+        if(activePlayer.equals(player.getName())){
+            UI.dismissEndText();
+            if(checkIfGameOver().equals("Game in Progress"))
+                gameOn = false;
+            beginTurn();
+        }
+        else if(activePlayer.equals("null"))
+            UI.setEndText("Need additional player to start game");
+        else if(((InactivePlayer)player).isSpectator())
+            UI.setEndText(activePlayer + " is currently playing");
+        else
+            UI.setEndText("It is " + activePlayer + "'s turn.");
+
     }
 }
