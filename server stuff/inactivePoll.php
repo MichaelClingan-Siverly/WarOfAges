@@ -18,17 +18,17 @@ else{
 	array_push($response,array('userID'=>"null"));
 }
 $d = array();
-//if there is a userID in users table that is attached to active player, select UnitMap
-if(!empty($userID)){
-	$sql = "select * from UnitMap";
-	$result = mysqli_query($con,$sql);
-	foreach($result as $row){
-		//store UnitMap inside an array
-		$d[] = $row;
-	}
-	//add the array of the UnitMap to json response
-	array_push($response,$d);
+
+//there was a previous if-statement here, but it caused problems when only one player has joined the game
+$sql = "select * from UnitMap";
+$result = mysqli_query($con,$sql);
+foreach($result as $row){
+	//store UnitMap inside an array
+	$d[] = $row;
 }
+//add the array of the UnitMap to json response
+array_push($response,$d);
+
 echo(json_encode($response));
 mysqli_close($con);
 ?>

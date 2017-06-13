@@ -28,12 +28,10 @@ public class InactivePlayer extends Player{
     private JSONArray playerAndUnits;
     private PollServerTask poll;
     private boolean isSpectator = false;
-    private final int STARTING_CASH = 1000;
 
     public InactivePlayer(String myName, Context context, DisplaysChanges ui){
         //First thing: construct the superclass. Could not make the 1000 a final variable, but it's starting cash
         super(context, myName, ui);
-        playerAndUnits = new JSONArray();
         setCash(STARTING_CASH);
     }
 
@@ -164,11 +162,11 @@ public class InactivePlayer extends Player{
                 //let caller know the player may now become active
                 return true;
             }
-            else{
-                JSONObject needToReplaceName = new JSONObject();
-                needToReplaceName.put("userID", myName);
-                playerAndUnits.put(0, needToReplaceName);
-            }
+//            else{
+//                JSONObject needToReplaceName = new JSONObject();
+//                needToReplaceName.put("userID", myName);
+//                playerAndUnits.put(0, needToReplaceName);
+//            }
         }
         catch(JSONException e){
             Log.d("JSONException", e.getLocalizedMessage());

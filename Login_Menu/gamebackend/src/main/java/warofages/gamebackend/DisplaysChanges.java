@@ -1,5 +1,7 @@
 package warofages.gamebackend;
 
+import android.content.Intent;
+
 import org.json.JSONArray;
 
 /**
@@ -11,7 +13,7 @@ public interface DisplaysChanges {
 
     void displayPollResult();
 
-    void continueAfterTerrainLoaded();
+    void displayTerrain(int mapSize);
 
     void displayTownMenu();
     void dismissTownMenu();

@@ -34,6 +34,7 @@ public class ActivePlayer extends Player {
 
     public ActivePlayer(Context context, String myName, DisplaysChanges ui){
         super(context, myName, ui);
+        setCash(STARTING_CASH);
     }
     public ActivePlayer(Player oldPlayer){
         super(oldPlayer.context, oldPlayer.myName, oldPlayer.ui);

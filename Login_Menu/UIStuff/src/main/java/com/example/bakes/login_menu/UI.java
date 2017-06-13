@@ -65,6 +65,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         setContentView(R.layout.activity_map);
 
         username = getIntent().getStringExtra("username");
+        boolean spectator = getIntent().hasExtra("spectator");
 
         //initialize gameOn
         gameOn = true;
@@ -77,8 +78,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         makeTownMenu();
         makeEndMenu();
 
-        uiBackend = new UIbackend(getApplicationContext(), username, this);
-        uiBackend.getMapFromServer();
+        uiBackend = new UIbackend(getApplicationContext(), username, spectator, this);
     }
 
     //shows whose turn it is
@@ -108,7 +108,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         for(int i = 0; i < icons.size(); i++){
             image = new ImageView(this);
             image.setImageResource(icons.get(i));
-            image.setImageResource(MOVE_ICON_ID + i);
+            image.setId(MOVE_ICON_ID + i);
             image.setOnClickListener(townMenuListener);
             popLayout.addView(image, layoutParams);
         }
@@ -124,7 +124,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         unitIDs.add(R.drawable.move_icon);
         Field[] fields = R.drawable.class.getFields();
         for(Field field : fields){
-            if(field.getName().endsWith("friendly")){
+            if(field.getName().startsWith("unit") && field.getName().endsWith("friendly")){
                 try {
                     unitIDs.add(field.getInt(null));
                 }
@@ -194,7 +194,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
 
     //load given terrain at given id
     public void loadTerrainToButtons(){
-        for(int id = 0; id < uiBackend.getMapSize(); id++) {
+        for(int id = 0; id < mapSize; id++) {
             int terrainTypeID = uiBackend.getTerrainAtLocation(id);
             //gets imageview object at given id
             String picName = "";
@@ -533,17 +533,9 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
     }
 
     @Override
-    public void continueAfterTerrainLoaded(){
-        mapSize = uiBackend.getMapSize();
+    public void displayTerrain(int mapSize){
+        this.mapSize = mapSize;
         createTerrainButtons();
         loadTerrainToButtons();
-
-        //display cash
-        setInfoBar("Cash: " + cash);
-        //Only players call this. Spectators do not need to get players.
-        if(!getIntent().hasExtra("spectator"))
-            uiBackend.readyToStart();
-
-        uiBackend.endTurn();
     }
 }

@@ -23,6 +23,7 @@ public abstract class Player {
     protected Context context;
     protected DisplaysChanges ui;
     private int cash;
+    protected final int STARTING_CASH = 1000;
 
     //I need whatever context this player is in. used for the ClientComm stuff
     @SuppressLint("UseSparseArrays")

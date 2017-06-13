@@ -37,15 +37,17 @@ public class UIbackend implements AsyncResultHandler{
     private Player player;
     private boolean gameOn;
     private boolean townsAssigned;
+    private boolean spectator;
 
-    public UIbackend(Context context, String myName, DisplaysChanges ui){
+    public UIbackend(Context context, String myName, boolean isSpectator, DisplaysChanges ui){
         player = new InactivePlayer(myName, context, ui);
+        spectator = isSpectator;
         UI = ui;
         comm = new ClientComm(context);
         towns = new SparseArray<>();
         mapIdManipulated = -1;
         townsAssigned = false;
-        //TODO constructor
+        getMapFromServer();
     }
 
     public void getMapFromServer(){
@@ -83,8 +85,8 @@ public class UIbackend implements AsyncResultHandler{
                         }
                         scan.close();
                         //continues here because Volley is asynchronous and I want to wait until its done
-//                        finishSettingUp();
-                        UI.continueAfterTerrainLoaded();
+                        finishSettingUp();
+
                     }
 
                 } catch (org.json.JSONException e) {
@@ -94,10 +96,12 @@ public class UIbackend implements AsyncResultHandler{
         });
     }
 
-    public int getMapSize(){
-        if(terrainMap != null)
-            return terrainMap.length;
-        return -1;
+    private void finishSettingUp(){
+        UI.displayTerrain(terrainMap.length);
+        UI.setInfoBar("Cash: " + player.getCash());
+        if(!spectator)
+            readyToStart();
+        ((InactivePlayer) player).waitForTurn(this);
     }
 
     public int getTerrainAtLocation(int index){
@@ -146,6 +150,7 @@ public class UIbackend implements AsyncResultHandler{
         comm.serverPostRequest("getPlayers.php", nameArray, new VolleyCallback<JSONArray>() {
             @Override
             public void onSuccess(JSONArray result) {
+                Log.d("getPlayers", result.toString());
                 //Nothing needs to be done. getPlayers.php only tells the server that I'm a player, not spectator
             }
         });
@@ -170,9 +175,11 @@ public class UIbackend implements AsyncResultHandler{
         if(!gameOn)
             UI.setInfoBar(checkIfGameOver());
         else if(playerIsActive()){
+            //checkActivePlayer was a bad name choice. It switches an active player to inactive and vice versa
             comm.serverPostRequest("checkActivePlayer.php", new JSONArray(), new VolleyCallback<JSONArray>() {
                 @Override
                 public void onSuccess(JSONArray result) {
+                    Log.d("checkActivePlayer", result.toString());
                     endTurnHelper();
                 }
             });
@@ -406,27 +413,27 @@ public class UIbackend implements AsyncResultHandler{
         //defer JSON work to the InactivePlayer, since its the only one who needs the manipulations
         if(!playerIsActive()){
             active = ((InactivePlayer)player).receiveNewJSON(result);
+            UI.displayPollResult();
             String end = checkIfGameOver();
             if (!end.equals("Game in Progress")) {
                 gameOn = false;
             }
-            beginTurn();
         }
         if(active)
             activePlayer = player.getName();
         else
             activePlayer = player.getEnemyName();
 
-        //now all I have to do is display the changes
-        if(activePlayer.equals(player.getName())){
+        if(activePlayer.equals("null"))
+            UI.setEndText("Need additional player to start game");
+        else if(activePlayer.equals(player.getName())){
+            //now all I have to do is display the changes
             UI.dismissEndText();
-            if(checkIfGameOver().equals("Game in Progress"))
+            if(!checkIfGameOver().equals("Game in Progress"))
                 gameOn = false;
             beginTurn();
         }
-        else if(activePlayer.equals("null"))
-            UI.setEndText("Need additional player to start game");
-        else if(((InactivePlayer)player).isSpectator())
+        else if(spectator)
             UI.setEndText(activePlayer + " is currently playing");
         else
             UI.setEndText("It is " + activePlayer + "'s turn.");
