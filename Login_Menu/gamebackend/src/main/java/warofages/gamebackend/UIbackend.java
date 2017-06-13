@@ -5,12 +5,19 @@ import android.util.Log;
 import android.util.SparseArray;
 
 import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.Scanner;
 
 import coms309.mike.clientcomm.ClientComm;
 import coms309.mike.clientcomm.VolleyCallback;
+import coms309.mike.units.Archer;
+import coms309.mike.units.Cavalry;
+import coms309.mike.units.General;
 import coms309.mike.units.RangedUnit;
+import coms309.mike.units.Spearman;
+import coms309.mike.units.Swordsman;
 import coms309.mike.units.Unit;
 
 /**
@@ -126,7 +133,25 @@ public class UIbackend implements AsyncResultHandler{
         return player instanceof ActivePlayer;
     }
 
-    public void endTurn(){
+    public void readyToStart(){
+        JSONArray nameArray = new JSONArray();
+        JSONObject nameObject = new JSONObject();
+        try {
+            nameObject.put("userID", player.getName());
+        }
+        catch(JSONException e){
+            //TODO
+        }
+        nameArray.put(nameObject);
+        comm.serverPostRequest("getPlayers.php", nameArray, new VolleyCallback<JSONArray>() {
+            @Override
+            public void onSuccess(JSONArray result) {
+                //Nothing needs to be done. getPlayers.php only tells the server that I'm a player, not spectator
+            }
+        });
+    }
+
+    private void endTurnHelper(){
         String end = checkIfGameOver();
         if(end.equals("Game in Progress")){
             UI.setInfoBar("Cash: " + player.getCash());
@@ -141,6 +166,19 @@ public class UIbackend implements AsyncResultHandler{
         }
     }
 
+    public void endTurn(){
+        if(!gameOn)
+            UI.setInfoBar(checkIfGameOver());
+        else if(playerIsActive()){
+            comm.serverPostRequest("checkActivePlayer.php", new JSONArray(), new VolleyCallback<JSONArray>() {
+                @Override
+                public void onSuccess(JSONArray result) {
+                    endTurnHelper();
+                }
+            });
+        }
+    }
+
     private void beginTurn(){
         if(!playerIsActive()) {
             player = new ActivePlayer(player);
@@ -149,7 +187,7 @@ public class UIbackend implements AsyncResultHandler{
         UI.setInfoBar("Cash: " + player.getCash());
     }
 
-    public String checkIfGameOver(){
+    private String checkIfGameOver(){
         if(player.checkIfNoUnits(true) && player.checkIfNoUnits(false))
             return "Game is a Draw";
         else if(player.checkIfNoUnits(true)) {
@@ -167,7 +205,7 @@ public class UIbackend implements AsyncResultHandler{
      * @param friendly indicate if a friendly (true) or hostile (false) unit is wanted
      * @return the friendly/hostile unit corresponding to the space clicked, or null if there is no match
      */
-    public Unit getUnitFromMap(final int mapID, boolean friendly){
+    private Unit getUnitFromMap(final int mapID, boolean friendly){
         if(mapID < 0 || mapID >= terrainMap.length)
             return null;
         else if(friendly)
@@ -185,12 +223,14 @@ public class UIbackend implements AsyncResultHandler{
             return getUnitFromMap(((ActivePlayer)player).moving, true);
     }
 
-    public Integer[] getMoves(int mapID){
+    private Integer[] getMoves(int mapID){
         Unit u = getUnitFromMap(mapID, true);
+        if(u == null)
+            return new Integer[0];
         return ((ActivePlayer)player).checkArea(u.getMapID(), u.getMoveSpeed(), u.getUnitID(), terrainMap, false);
     }
 
-    public Integer[] getAttackRange(int mapID){
+    private Integer[] getAttackRange(int mapID){
         int attackRange;
         Unit u = getUnitFromMap(mapID, true);
         if(u instanceof RangedUnit)
@@ -216,8 +256,7 @@ public class UIbackend implements AsyncResultHandler{
                         && !(unitIdToAdd == 5 && getTerrainAtLocation(move) == 4)
                         && !(unitIdToAdd == 2 && getTerrainAtLocation(move) == 4)) {
                     //creates unit and sends it to server
-                    //TODO I have this marked in UI to move out of it
-                    createUnit(move, unitIDtoAdd);
+                    createUnit(move, unitIdToAdd);
                     // don't actually move the unit, but dont let it move anymore
                     movingUnit.moveUnit(movingUnit.getMapID());
                     //close popup
@@ -392,5 +431,100 @@ public class UIbackend implements AsyncResultHandler{
         else
             UI.setEndText("It is " + activePlayer + "'s turn.");
 
+    }
+
+    //TODO I basically just copy/pasted this from UI here. Probably needs some changing
+    private void UIAttack(Unit movingUnit, int attackerGridID, int defenderGridID){
+        Integer possibleAttacks[] = getAttackRange(movingUnit.getMapID());
+        //if enemy if outside of attack range, it will return without attempting an attack
+        for(int index : possibleAttacks){
+            if(defenderGridID == index){
+                String attackResults = ((ActivePlayer)player).attack(defenderGridID, attackerGridID, getMap());
+                if (attackResults.equals("Fail")) {
+                    UI.displayForeground(attackerGridID, 0, true, false);
+                }
+                else if (attackResults.equals("Success")) {
+                    UI.displayForeground(defenderGridID, 0, true, false);
+                }
+                UI.setInfoBar(attackResults);
+                break;
+            }
+        }
+    }
+
+    //TODO like with UIAttack, pretty much just copy/paste of the UI version
+    private void createUnit(int mapID, int unitID){
+        Unit newUnit;
+        String message;
+        int cost;
+        switch(unitID){
+            case 1:
+                cost = 100;
+                newUnit = new Archer(mapID, unitID, player.getName(), 300.0);
+                message = "Archer";
+                break;
+            case 2:
+                cost = 250;
+                newUnit = new Cavalry(mapID, unitID, player.getName(), 900.0);
+                message = "Cavalry";
+                break;
+            case 3:
+                cost = 150;
+                newUnit = new Swordsman(mapID, unitID, player.getName(), 600.0);
+                message = "Swordsman";
+                break;
+            case 4:
+                cost = 200;
+                newUnit = new Spearman(mapID, unitID, player.getName(), 450.0);
+                message = "spearman";
+                break;
+            case 5:
+                cost = 100000;
+                newUnit = new General(mapID, unitID, player.getName(), 2000.0);
+                message = "General";
+                break;
+            default:
+                return;
+        }
+        if(player.getCash() <= cost) {
+            player.setCash(player.getCash() - cost);
+            message = message + " has been recruited.";
+            //Didn't actually move, but sets its moved boolean because new units cant move
+            newUnit.moveUnit(mapID);
+            newUnit.setHasAttacked(); //ensure the new unit doesn't attack
+            player.getMyUnits().put(mapID, newUnit);
+            //set unit image
+            UI.displayForeground(mapID, unitID, true, false);
+
+            JSONArray requestArray = new JSONArray();
+            JSONObject nameObject = new JSONObject();
+            JSONObject gridObject = new JSONObject();
+            JSONObject unitObject = new JSONObject();
+            JSONObject unitHealth = new JSONObject();
+            try {
+                nameObject.put("userID", player.getName());
+                gridObject.put("GridID", mapID);
+                unitObject.put("UnitID", unitID);
+                unitHealth.put("health", newUnit.getHealth());
+            } catch (JSONException e) {
+                //TODO
+            }
+            requestArray.put(nameObject);
+            requestArray.put(gridObject);
+            requestArray.put(unitObject);
+            requestArray.put(unitHealth);
+
+            comm.serverPostRequest("createUnit.php", requestArray, new VolleyCallback<JSONArray>() {
+                @Override
+                public void onSuccess(JSONArray result) {
+                    Log.d("createUnit", result.toString());
+                    //TODO check results
+                }
+            });
+        }
+        else{
+            message = "You do not have enough cash.";
+        }
+        UI.makeToast(message);
     }
 }

@@ -17,26 +17,12 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.HashMap;
 
-import coms309.mike.clientcomm.ClientComm;
-import coms309.mike.clientcomm.VolleyCallback;
-import coms309.mike.units.Archer;
-import coms309.mike.units.Cavalry;
-import coms309.mike.units.General;
-import coms309.mike.units.Spearman;
-import coms309.mike.units.Swordsman;
 import coms309.mike.units.Unit;
-import warofages.gamebackend.ActivePlayer;
 import warofages.gamebackend.DisplaysChanges;
 import warofages.gamebackend.InactivePlayer;
-import warofages.gamebackend.Player;
 import warofages.gamebackend.UIbackend;
 
 public class UI extends AppCompatActivity implements DisplaysChanges {
@@ -206,26 +192,6 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         column.setLayoutParams(params);
     }
 
-    //gets players from server
-    private void readyToStart(){
-        ClientComm comm = new ClientComm(getApplicationContext());
-        JSONArray nameArray = new JSONArray();
-        JSONObject nameObject = new JSONObject();
-        try {
-            nameObject.put("userID", username);
-        }
-        catch(JSONException e){
-            //TODO
-        }
-        nameArray.put(nameObject);
-        comm.serverPostRequest("getPlayers.php", nameArray, new VolleyCallback<JSONArray>() {
-            @Override
-            public void onSuccess(JSONArray result) {
-                //Nothing needs to be done. getPlayers.php only tells the server that I'm a player, not spectator
-            }
-        });
-    }
-
     //load given terrain at given id
     public void loadTerrainToButtons(){
         for(int id = 0; id < uiBackend.getMapSize(); id++) {
@@ -298,32 +264,12 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         }
     }
 
-    public void endTurn(){
-        if(uiBackend.playerIsActive()){
-            ClientComm comm = new ClientComm(getApplicationContext());
-            comm.serverPostRequest("checkActivePlayer.php", new JSONArray(), new VolleyCallback<JSONArray>() {
-                @Override
-                public void onSuccess(JSONArray result) {
-                    uiBackend.endTurn();
-                }
-            });
-        }
-    }
-
     public void bottomBarListener(View v){
         boolean resized = false;
         switch (v.getId()){
             case R.id.endTurn:
-                if(gameOn){
-                    //TODO move this to backend
-                    endTurn();
-                    return;
-                }
-                else{
-                    String end = uiBackend.checkIfGameOver();
-                    setInfoBar(end);
-                }
-                break;
+                uiBackend.endTurn();
+                return;
             case R.id.zoomIn:
                 if(tileSize < 500) {
                     tileSize += 100;
@@ -389,23 +335,6 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
             uiBackend.helpWithMapClicks(v.getId());
         }
     };
-
-    private void UIAttack(Unit movingUnit, int attackerGridID, int defenderGridID){
-        Integer possibleAttacks[] = uiBackend.getAttackRange(movingUnit.getMapID());
-        //if enemy if outside of attack range, it will return without attempting an attack
-        for(int index : possibleAttacks){
-            if(defenderGridID == index){
-                String attackResults = ((ActivePlayer)uiBackend.getPlayer()).attack(defenderGridID, attackerGridID, uiBackend.getMap());
-                if (attackResults.equals("Fail")) {
-                    clearImage(attackerGridID);
-                } else if (attackResults.equals("Success")) {
-                    clearImage(defenderGridID);
-                }
-                setInfoBar(attackResults);
-                break;
-            }
-        }
-    }
 
     public void displayTownMenu(){
         ScrollView scroll = (ScrollView) findViewById(R.id.scroll);
@@ -548,83 +477,6 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         image.setForeground(getDrawable(unitDrawableID));
     }
 
-    //TODO move this to backend
-    private void createUnit(int mapID, int unitID){
-        ClientComm comm = new ClientComm(getApplicationContext());
-        Unit newUnit;
-        String message;
-        int cost;
-        switch(unitID){
-            case 1:
-                cost = 100;
-                    newUnit = new Archer(mapID, unitID, username,300.0);
-                    message = "Archer";
-                break;
-            case 2:
-                cost = 250;
-                    newUnit = new Cavalry(mapID, unitID, username,900.0);
-                    message = "Cavalry";
-                break;
-            case 3:
-                cost = 150;
-                    newUnit = new Swordsman(mapID, unitID, username,600.0);
-                    message = "Swordsman";
-                break;
-            case 4:
-                cost = 200;
-                    newUnit = new Spearman(mapID, unitID, username,450.0);
-                    message = "spearman";
-                break;
-            case 5:
-                cost = 100000;
-                    newUnit = new General(mapID, unitID, username,2000.0);
-                    message = "General";
-                break;
-            default:
-                return;
-        }
-        if(cash <= cost) {
-            cash -= cost;
-            message = message + " has been recruited.";
-            //Didn't actually move, but sets its moved boolean because new units cant move
-            newUnit.moveUnit(mapID);
-            newUnit.setHasAttacked(); //ensure the new unit doesn't attack
-            uiBackend.getPlayer().getMyUnits().put(mapID, newUnit);
-            //set unit image
-            displaySingleUnit(newUnit, false);
-
-            JSONArray requestArray = new JSONArray();
-            JSONObject nameObject = new JSONObject();
-            JSONObject gridObject = new JSONObject();
-            JSONObject unitObject = new JSONObject();
-            JSONObject unitHealth = new JSONObject();
-            try {
-                nameObject.put("userID", username);
-                gridObject.put("GridID", mapID);
-                unitObject.put("UnitID", unitID);
-                unitHealth.put("health", newUnit.getHealth());
-            } catch (JSONException e) {
-                //TODO
-            }
-            requestArray.put(nameObject);
-            requestArray.put(gridObject);
-            requestArray.put(unitObject);
-            requestArray.put(unitHealth);
-
-            comm.serverPostRequest("createUnit.php", requestArray, new VolleyCallback<JSONArray>() {
-                @Override
-                public void onSuccess(JSONArray result) {
-                    Log.d("createUnit", result.toString());
-                    //TODO check results
-                }
-            });
-        }
-        else{
-            message = "You do not have enough cash.";
-        }
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-    }
-
     @Override
     public void onBackPressed(){
         if(!uiBackend.playerIsActive()){
@@ -690,7 +542,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         setInfoBar("Cash: " + cash);
         //Only players call this. Spectators do not need to get players.
         if(!getIntent().hasExtra("spectator"))
-            readyToStart();
+            uiBackend.readyToStart();
 
         uiBackend.endTurn();
     }
