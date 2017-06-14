@@ -144,7 +144,7 @@ public class InactivePlayer extends Player{
     /**
      * adjusts values in this class based on the JSONArray parameter
      * @param jsonArray a JSONArray presumed to have been received by the caller from the server
-     *             also presumed to not have been changed by the caller
+     *             also presumed have had the towns removed by the caller
      * @return true if the player should be changed to active, false otherwise
      */
     public boolean receiveNewJSON(JSONArray jsonArray){

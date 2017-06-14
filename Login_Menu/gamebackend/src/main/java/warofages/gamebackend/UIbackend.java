@@ -25,6 +25,9 @@ import coms309.mike.units.Unit;
  */
 
 public class UIbackend implements AsyncResultHandler{
+    private final int FRIENDLY_TOWN_ID = 5;
+    private final int HOSTILE_TOWN_ID = 6;
+    private final int NEUTRAL_TOWN_ID = 7;
     /*  IDE suggested using a SparseArray here. I only add towns once, they aren't removed, and there
         should usually be few of them in comparison to the size of the map. Seems like any performance
         loss would be worth the memory saved
@@ -36,7 +39,6 @@ public class UIbackend implements AsyncResultHandler{
     private int mapIdManipulated;
     private Player player;
     private boolean gameOn;
-    private boolean townsAssigned;
     private boolean spectator;
 
     public UIbackend(Context context, String myName, boolean isSpectator, DisplaysChanges ui){
@@ -46,7 +48,6 @@ public class UIbackend implements AsyncResultHandler{
         comm = new ClientComm(context);
         towns = new SparseArray<>();
         mapIdManipulated = -1;
-        townsAssigned = false;
         getMapFromServer();
     }
 
@@ -70,13 +71,13 @@ public class UIbackend implements AsyncResultHandler{
                             switch(terrainCode){
                                 //TODO I know which towns are friendly/hostile before game starts, but I don't know if I'm friendly or hostile until then
                                 //TODO what I'll probably do is have the server's json return town ownership as well as units
-                                case 5:
+                                case FRIENDLY_TOWN_ID:
                                     addTown(tID, "friendly");
                                     break;
-                                case 6:
+                                case HOSTILE_TOWN_ID:
                                     addTown(tID, "hostile");
                                     break;
-                                case 7:
+                                case NEUTRAL_TOWN_ID:
                                     addTown(tID, "null");
                                     break;
                             }
@@ -125,6 +126,13 @@ public class UIbackend implements AsyncResultHandler{
             towns.put(mapID, town);
     }
 
+    private void setTownOwnership(JSONArray townArray){
+        if(townArray == null)
+            return;
+        UI.makeToast(townArray.toString());
+        //TODO set ownership
+    }
+
     public SparseArray<Town> getTowns(){
         return towns;
     }
@@ -150,8 +158,7 @@ public class UIbackend implements AsyncResultHandler{
         comm.serverPostRequest("getPlayers.php", nameArray, new VolleyCallback<JSONArray>() {
             @Override
             public void onSuccess(JSONArray result) {
-                Log.d("getPlayers", result.toString());
-                //Nothing needs to be done. getPlayers.php only tells the server that I'm a player, not spectator
+                //here is where I'll set towns to their proper owners, since it tells me who is player 1 or 2
             }
         });
     }
@@ -408,6 +415,15 @@ public class UIbackend implements AsyncResultHandler{
     // if the UI didn't need any knowledge of that stuff, and only worked on displaying what its told to
     @Override
     public void handlePollResult(JSONArray result){
+        JSONArray townArray = null;
+        try {
+            townArray = result.getJSONArray(1);
+            result.remove(1);
+        }
+        catch (JSONException e){
+
+        }
+        setTownOwnership(townArray);
         boolean active = false;
         String activePlayer;
         //defer JSON work to the InactivePlayer, since its the only one who needs the manipulations

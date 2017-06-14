@@ -6,4 +6,5 @@
     <string name="LeftButton">Zoom In</string>
     <string name="RightButton">Zoom Out</string>
     <string name="MidButton">Create</string>
+    <string name="EndTextDefault">Turn Over</string>
 </resources>

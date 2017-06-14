@@ -18,6 +18,8 @@ public interface DisplaysChanges {
     void displayTownMenu();
     void dismissTownMenu();
 
+    void changeTownOwnership(int newTerrainID, int mapID);
+
     /**
      * Used for showing information to the player. Intended to be shows as response to user input.
      * Lasts until changed, so is much more permanent than a toast.

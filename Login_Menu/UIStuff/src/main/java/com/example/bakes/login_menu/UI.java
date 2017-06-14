@@ -3,6 +3,7 @@ package com.example.bakes.login_menu;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -88,7 +89,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         endText = new TextView(this);
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
-        endText.setText("Turn over");
+        endText.setText(R.string.EndTextDefault);
         popLayout.addView(endText, layoutParams);
         endMenu.setContentView(popLayout);
         endMenu.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -192,43 +193,49 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         column.setLayoutParams(params);
     }
 
+    private void loadSingleTerrainToButton(int tID, int mapID){
+        String picName = "";
+        switch (tID) {
+            case 1:
+                picName = "tile_desert";
+                break;
+            case 2:
+                picName = "tile_forest";
+                break;
+            case 3:
+                picName = "tile_meadow";
+                break;
+            case 4:
+                picName = "tile_mountain";
+                break;
+            case 5:
+                picName = "tile_town_friendly";
+                break;
+            case 6:
+                picName = "tile_town_hostile";
+                break;
+            case 7:
+                picName = "tile_town_neutral";
+                break;
+            case 8:
+                picName = "tile_water";
+                break;
+        }
+        //gets and sets reference for picture ID. "p12" would indicate something went wrong
+        int resID = getResources().getIdentifier(picName.equals("") ? "p12" : picName, "drawable", getPackageName());
+        HexagonMaskView image = getImage(mapID);
+        Drawable oldForeground = image.getForeground();
+
+        image.setImageResource(resID);
+        image.setForeground(oldForeground);
+    }
+
     //load given terrain at given id
     public void loadTerrainToButtons(){
         for(int id = 0; id < mapSize; id++) {
             int terrainTypeID = uiBackend.getTerrainAtLocation(id);
             //gets imageview object at given id
-            String picName = "";
-            switch (terrainTypeID) {
-                case 1:
-                    picName = "tile_desert";
-                    break;
-                case 2:
-                    picName = "tile_forest";
-                    break;
-                case 3:
-                    picName = "tile_meadow";
-                    break;
-                case 4:
-                    picName = "tile_mountain";
-                    break;
-                case 5:
-                    picName = "tile_town_friendly";
-                    break;
-                case 6:
-                    picName = "tile_town_hostile";
-                    break;
-                case 7:
-                    picName = "tile_town_neutral";
-                    break;
-                case 8:
-                    picName = "tile_water";
-                    break;
-            }
-            //gets and sets reference for picture ID. "p12" would indicate something went wrong
-            int resID = getResources().getIdentifier(picName.equals("") ? "p12" : picName, "drawable", getPackageName());
-            HexagonMaskView image = getImage(id);
-
-            image.setImageResource(resID);
+            loadSingleTerrainToButton(terrainTypeID, id);
         }
     }
 
@@ -537,5 +544,10 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         this.mapSize = mapSize;
         createTerrainButtons();
         loadTerrainToButtons();
+    }
+
+    @Override
+    public void changeTownOwnership(int newTerrainID, int mapID){
+        loadSingleTerrainToButton(newTerrainID, mapID);
     }
 }
