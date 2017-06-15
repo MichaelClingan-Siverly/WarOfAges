@@ -101,7 +101,7 @@ public class InactivePlayer extends Player{
             jsonObject.put("userID", myName);
             playerAndUnits.put(jsonObject);
         } catch (JSONException e) {
-            Log.d("convertToJSON", "caught exception " + e.toString());
+            Log.d("convertToJSON", "caught exception " + e.getLocalizedMessage());
         }
     }
 
@@ -115,7 +115,7 @@ public class InactivePlayer extends Player{
             numUnitsInJSON = playerAndUnits.getJSONArray(1).length();
         }
         catch(JSONException e) {
-            Log.d("converting response", "contained more than one user: " + e.toString());
+            Log.d("converting response", "contained more than one user: " + e.getLocalizedMessage());
         }
         try{
             //server's returned array looks like: [{"userID":activePlayer},[{unit1 stuff},{unit2 stuff}, ...]]
@@ -137,7 +137,7 @@ public class InactivePlayer extends Player{
             }
         }
         catch(JSONException e){
-            Log.d("convertToArrayList", e.toString());
+            Log.d("convertToArrayList", e.getLocalizedMessage());
         }
     }
 

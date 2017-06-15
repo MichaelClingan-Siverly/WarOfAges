@@ -57,7 +57,6 @@ public class PollServerTask extends AsyncTask<Context, JSONArray, JSONArray> {
             comm.serverPostRequest("inactivePoll.php", new JSONArray(), new VolleyCallback<JSONArray>() {
                 @Override
                 public void onSuccess(JSONArray result) {
-                    Log.d("poll returned", result.toString());
                     myNameAndArmy = result;
                 }
             });
@@ -84,7 +83,7 @@ public class PollServerTask extends AsyncTask<Context, JSONArray, JSONArray> {
     @Override
     public void onProgressUpdate(JSONArray... progress){
         if(!isCancelled()){
-            Log.d("polling loop", "publishing progress");
+
             receiver.handlePollResult(progress[0]);
         }
     }
@@ -95,7 +94,6 @@ public class PollServerTask extends AsyncTask<Context, JSONArray, JSONArray> {
      */
     @Override
     public void onPostExecute(JSONArray result){
-        Log.d("polling loop", "onPostExecute ran");
         if(!isCancelled()) {
             //Nothing done with this, as the progressUpdate already does what I need...
             receiver.handlePollResult(result);

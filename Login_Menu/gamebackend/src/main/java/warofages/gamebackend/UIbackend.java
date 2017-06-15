@@ -51,7 +51,7 @@ public class UIbackend implements AsyncResultHandler{
         getMapFromServer();
     }
 
-    public void getMapFromServer(){
+    private void getMapFromServer(){
         //Makes connection to server and requests the terrain map
         comm.serverPostRequest("adminMap.php", new JSONArray(), new VolleyCallback<JSONArray>() {
             @Override
@@ -68,9 +68,8 @@ public class UIbackend implements AsyncResultHandler{
                         while (scan.hasNextInt()) {
                             int terrainCode = scan.nextInt();
                             terrainMap[tID] = terrainCode;
+                            //these are subject to change, but I still need to differentiate them for now
                             switch(terrainCode){
-                                //TODO I know which towns are friendly/hostile before game starts, but I don't know if I'm friendly or hostile until then
-                                //TODO what I'll probably do is have the server's json return town ownership as well as units
                                 case FRIENDLY_TOWN_ID:
                                     addTown(tID, "friendly");
                                     break;
@@ -111,10 +110,6 @@ public class UIbackend implements AsyncResultHandler{
         return -1;
     }
 
-    public int[] getMap(){
-        return terrainMap;
-    }
-
     private void addTown(int mapID, String owner){
         Town town;
         if(owner != null)
@@ -129,8 +124,28 @@ public class UIbackend implements AsyncResultHandler{
     private void setTownOwnership(JSONArray townArray){
         if(townArray == null)
             return;
-        UI.makeToast(townArray.toString());
-        //TODO set ownership
+        for(int i = 0; i < townArray.length(); i++){
+            String owner;
+            int mapID;
+            int newTerID;
+            try {
+                mapID = townArray.getJSONObject(i).getInt("GridID");
+                owner = townArray.getJSONObject(i).getString("Owner");
+                //json says town belongs to one player while I think its another's
+                if(owner.equals(player.getName()) && !towns.get(mapID).getOwner().equals(player.getName())
+                        || owner.equals(player.getEnemyName()) && !towns.get(mapID).getOwner().equals(player.getEnemyName())){
+                    if(owner.equals(player.getName()))
+                        newTerID = 6;
+                    else
+                        newTerID = 5;
+                    towns.get(mapID).setOwner(owner);
+                    UI.changeTownOwnership(newTerID, mapID);
+                }
+            }
+            catch(JSONException e){
+                Log.d("setTownOwnership", e.getLocalizedMessage());
+            }
+        }
     }
 
     public SparseArray<Town> getTowns(){
@@ -145,14 +160,14 @@ public class UIbackend implements AsyncResultHandler{
         return player instanceof ActivePlayer;
     }
 
-    public void readyToStart(){
+    private void readyToStart(){
         JSONArray nameArray = new JSONArray();
         JSONObject nameObject = new JSONObject();
         try {
             nameObject.put("userID", player.getName());
         }
         catch(JSONException e){
-            //TODO
+            Log.d("readyToStart", e.getLocalizedMessage());
         }
         nameArray.put(nameObject);
         comm.serverPostRequest("getPlayers.php", nameArray, new VolleyCallback<JSONArray>() {
@@ -186,7 +201,6 @@ public class UIbackend implements AsyncResultHandler{
             comm.serverPostRequest("checkActivePlayer.php", new JSONArray(), new VolleyCallback<JSONArray>() {
                 @Override
                 public void onSuccess(JSONArray result) {
-                    Log.d("checkActivePlayer", result.toString());
                     endTurnHelper();
                 }
             });
@@ -247,7 +261,9 @@ public class UIbackend implements AsyncResultHandler{
     private Integer[] getAttackRange(int mapID){
         int attackRange;
         Unit u = getUnitFromMap(mapID, true);
-        if(u instanceof RangedUnit)
+        if(u == null)
+            return new Integer[0];
+        else if(u instanceof RangedUnit)
             attackRange = ((RangedUnit) u).getAttackRange();
         else
             attackRange = 1;
@@ -330,6 +346,9 @@ public class UIbackend implements AsyncResultHandler{
     }
 
     private void finishMoveOrAttack(Unit movingUnit, int mapIdClicked){
+        resetMapIdManipulated();
+        ((ActivePlayer)player).moving = -1;
+
         Integer[] largestArea = findLargestArea(movingUnit);
         int moving = ((ActivePlayer)player).moving;
         for (int move : largestArea) {
@@ -338,11 +357,15 @@ public class UIbackend implements AsyncResultHandler{
             int unitID = 0;
             boolean friendly = true;
             switch(moveCheck){
-                case 0:
-                    if(getUnitFromMap(move, true) != null)
-                        unitID = getUnitFromMap(move, true).getUnitID();
+                case 0: //"no move"
+                    if(getUnitFromMap(move, true) != null) {
+                        Unit u = getUnitFromMap(move, true);
+                        if(u == null)
+                            return;
+                        unitID = u.getUnitID();
+                    }
                     break;
-                case 1:
+                case 1: //"canMoveTerrain"
                     if(move == mapIdClicked && !movingUnit.checkIfMoved()){
                         ((ActivePlayer)player).sendMove(mapIdClicked, moving);
                         //set the new foreground. It's friendly because I can't move an unfriendly unit
@@ -352,9 +375,12 @@ public class UIbackend implements AsyncResultHandler{
                         UI.setInfoBar("Cash: " + player.getCash());
                     }
                     break;
-                case 2:
+                case 2: //"canMoveEnemy"
                     //un-highlight enemy unit
-                    unitID = getUnitFromMap(move, false).getUnitID();
+                    Unit u = getUnitFromMap(move, false);
+                    if(u == null)
+                        return;
+                    unitID = u.getUnitID();
                     friendly = false;
                     //after its un-highlighted, do combat
                     // (I un-highlight first in case the attack is out of range)
@@ -365,8 +391,6 @@ public class UIbackend implements AsyncResultHandler{
             }
             UI.displayForeground(mapID, unitID, friendly, false);
         }
-        resetMapIdManipulated();
-        ((ActivePlayer)player).moving = -1;
     }
 
     public void beginMoveOrAttack(){
@@ -396,8 +420,12 @@ public class UIbackend implements AsyncResultHandler{
                 UI.displayForeground(move, movingUnit.getUnitID(), true, true);
             if (moveCheck == 1)
                 UI.displayForeground(move, 0, true, true);
-            else if (moveCheck == 2)
-                UI.displayForeground(move, getUnitFromMap(move, false).getUnitID(), false, true);
+            else if (moveCheck == 2) {
+                Unit u = getUnitFromMap(move, false);
+                if(u == null)
+                    return;
+                UI.displayForeground(move, u.getUnitID(), false, true);
+            }
         }
     }
 
@@ -416,18 +444,24 @@ public class UIbackend implements AsyncResultHandler{
     @Override
     public void handlePollResult(JSONArray result){
         JSONArray townArray = null;
-        try {
-            townArray = result.getJSONArray(1);
-            result.remove(1);
+        // seemed a bit much to have the server send info about towns every time,
+        // so I have to make sure to update towns only when it sends town info
+        if(result.length() == 3) {
+            try {
+                townArray = result.getJSONArray(1);
+                result.remove(1);
+            } catch (JSONException e) {
+                Log.d("handlePollResult", e.getLocalizedMessage());
+            }
+            setTownOwnership(townArray);
         }
-        catch (JSONException e){
-
-        }
-        setTownOwnership(townArray);
         boolean active = false;
         String activePlayer;
         //defer JSON work to the InactivePlayer, since its the only one who needs the manipulations
         if(!playerIsActive()){
+            //I let the server always send unit info because of movement: I can't keep track of
+            // which unit is which otherwise. Maybe one day I can have the server assign a unique ID
+            // for each unit so that  it can only send info about units which have changed
             active = ((InactivePlayer)player).receiveNewJSON(result);
             UI.displayPollResult();
             String end = checkIfGameOver();
@@ -462,7 +496,7 @@ public class UIbackend implements AsyncResultHandler{
         //if enemy if outside of attack range, it will return without attempting an attack
         for(int index : possibleAttacks){
             if(defenderGridID == index){
-                String attackResults = ((ActivePlayer)player).attack(defenderGridID, attackerGridID, getMap());
+                String attackResults = ((ActivePlayer)player).attack(defenderGridID, attackerGridID, terrainMap);
                 if (attackResults.equals("Fail")) {
                     UI.displayForeground(attackerGridID, 0, true, false);
                 }

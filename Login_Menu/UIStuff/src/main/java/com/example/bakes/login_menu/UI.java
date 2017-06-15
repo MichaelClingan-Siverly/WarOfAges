@@ -38,15 +38,6 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
     int tileSize = 100;
     //username
     String username = "";
-    //current player
-//    Player player;
-//    //list of my units.     Using until active player has move checking implimmented
-//    ArrayList<Unit> myArmy;
-//    //list of enemy units
-//    ArrayList<Unit> enemyArmy;
-    //list of terrain locations
-//    int terrainMap[];
-    int cash;
     //if click on town with friendly unit and 0, open town menu.
     // if 1, currently using popup. if 2, moving unit.
     int unitVtown;
@@ -421,6 +412,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
             image.setForeground(null);
     }
 
+    //TODO remove this. it's redundant with displayForeground, and the other one doesn't require Unit class
     private void displaySingleUnit(Unit unit, boolean selected){
         boolean friendly = false;
         if(unit.getOwner().equals(username)){
@@ -498,7 +490,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
 
     @Override
     public void onDestroy(){
-        Log.d("UI Destroy", "destroy called");
+
         if(isFinishing() && !movedToOtherIntent) {
             endMenu.dismiss();
             Intent forceLogout = new Intent(this, com.example.bakes.login_menu.LogoutBackgroundService.class);
