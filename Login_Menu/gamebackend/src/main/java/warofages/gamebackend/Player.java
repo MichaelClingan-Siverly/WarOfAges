@@ -21,16 +21,14 @@ public abstract class Player {
     protected SparseArray<Unit> enemyUnits;
     protected String myName = "a player has no name";
     protected Context context;
-    protected DisplaysChanges ui;
     private int cash;
     protected final int STARTING_CASH = 1000;
 
     //I need whatever context this player is in. used for the ClientComm stuff
     @SuppressLint("UseSparseArrays")
-    public Player(Context context, String myName, DisplaysChanges ui){
+    public Player(Context context, String myName){
         this.context = context;
         this.myName = myName;
-        this.ui = ui;
         myUnits = new SparseArray<>();
         enemyUnits = new SparseArray<>();
     }

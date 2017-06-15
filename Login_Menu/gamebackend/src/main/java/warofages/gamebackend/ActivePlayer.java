@@ -18,7 +18,6 @@ import coms309.mike.clientcomm.VolleyCallback;
  */
 //TODO well...just about everything...
 public class ActivePlayer extends Player {
-    DisplaysChanges ui;
 
     public int moving=-1;
     public int movespeed;
@@ -32,12 +31,12 @@ public class ActivePlayer extends Player {
     private double stats[]= new double[3];
     private Random rand=new Random();
 
-    public ActivePlayer(Context context, String myName, DisplaysChanges ui){
-        super(context, myName, ui);
+    public ActivePlayer(Context context, String myName){
+        super(context, myName);
         setCash(STARTING_CASH);
     }
     public ActivePlayer(Player oldPlayer){
-        super(oldPlayer.context, oldPlayer.myName, oldPlayer.ui);
+        super(oldPlayer.context, oldPlayer.myName);
         this.enemyUnits = oldPlayer.enemyUnits;
         this.myUnits = oldPlayer.myUnits;
         this.cash = oldPlayer.getCash();

@@ -28,10 +28,7 @@ public class UIbackend implements AsyncResultHandler{
     private final int FRIENDLY_TOWN_ID = 5;
     private final int HOSTILE_TOWN_ID = 6;
     private final int NEUTRAL_TOWN_ID = 7;
-    /*  IDE suggested using a SparseArray here. I only add towns once, they aren't removed, and there
-        should usually be few of them in comparison to the size of the map. Seems like any performance
-        loss would be worth the memory saved
-    */
+
     private SparseArray<Town> towns;
     private DisplaysChanges UI;
     private ClientComm comm;
@@ -42,7 +39,7 @@ public class UIbackend implements AsyncResultHandler{
     private boolean spectator;
 
     public UIbackend(Context context, String myName, boolean isSpectator, DisplaysChanges ui){
-        player = new InactivePlayer(myName, context, ui);
+        player = new InactivePlayer(myName, context);
         spectator = isSpectator;
         UI = ui;
         comm = new ClientComm(context);
@@ -156,7 +153,7 @@ public class UIbackend implements AsyncResultHandler{
         return player;
     }
 
-    public boolean playerIsActive(){
+    private boolean playerIsActive(){
         return player instanceof ActivePlayer;
     }
 
@@ -463,7 +460,7 @@ public class UIbackend implements AsyncResultHandler{
             // which unit is which otherwise. Maybe one day I can have the server assign a unique ID
             // for each unit so that  it can only send info about units which have changed
             active = ((InactivePlayer)player).receiveNewJSON(result);
-            UI.displayPollResult();
+            displayPollResult();
             String end = checkIfGameOver();
             if (!end.equals("Game in Progress")) {
                 gameOn = false;
@@ -487,6 +484,21 @@ public class UIbackend implements AsyncResultHandler{
             UI.setEndText(activePlayer + " is currently playing");
         else
             UI.setEndText("It is " + activePlayer + "'s turn.");
+
+    }
+
+    private void displayPollResult(){
+        UI.clearMap();
+        SparseArray<Unit> units = player.getMyUnits();
+        //friendly units
+        for (int i = 0; i < units.size(); i++) {
+            UI.displayForeground(units.valueAt(i).getMapID(), units.valueAt(i).getUnitID(), true, false);
+        }
+        //hostile units
+        units = player.getEnemyUnits();
+        for (int i = 0; i < units.size(); i++) {
+            UI.displayForeground(units.valueAt(i).getMapID(), units.valueAt(i).getUnitID(), false, false);
+        }
 
     }
 
@@ -583,5 +595,11 @@ public class UIbackend implements AsyncResultHandler{
             message = "You do not have enough cash.";
         }
         UI.makeToast(message);
+    }
+
+    public void ensurePollKilled(){
+        if(!playerIsActive()){
+            ((InactivePlayer)player).killPoll();
+        }
     }
 }

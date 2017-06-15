@@ -6,8 +6,6 @@ import android.util.Log;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import java.util.ArrayList;
-import java.util.HashMap;
 
 import coms309.mike.units.Archer;
 import coms309.mike.units.Cavalry;
@@ -29,20 +27,19 @@ public class InactivePlayer extends Player{
     private PollServerTask poll;
     private boolean isSpectator = false;
 
-    public InactivePlayer(String myName, Context context, DisplaysChanges ui){
+    public InactivePlayer(String myName, Context context){
         //First thing: construct the superclass. Could not make the 1000 a final variable, but it's starting cash
-        super(context, myName, ui);
+        super(context, myName);
         setCash(STARTING_CASH);
     }
 
     public InactivePlayer(Player oldPlayer){
-        super(oldPlayer.context, oldPlayer.myName, oldPlayer.ui);
+        super(oldPlayer.context, oldPlayer.myName);
         this.enemyUnits = oldPlayer.enemyUnits;
         this.myUnits = oldPlayer.myUnits;
         setCash(oldPlayer.getCash());
     }
-
-    //UI isn't really final. It has static values which are changed inside. But it makes me say its final
+    //not in constructors because it seems a bit much to hold the whole backend when not really needed
     public void waitForTurn(AsyncResultHandler backend) {
         //initialize the static json array with json objects of units.
         convertToJson();
@@ -162,11 +159,6 @@ public class InactivePlayer extends Player{
                 //let caller know the player may now become active
                 return true;
             }
-//            else{
-//                JSONObject needToReplaceName = new JSONObject();
-//                needToReplaceName.put("userID", myName);
-//                playerAndUnits.put(0, needToReplaceName);
-//            }
         }
         catch(JSONException e){
             Log.d("JSONException", e.getLocalizedMessage());

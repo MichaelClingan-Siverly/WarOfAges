@@ -11,7 +11,7 @@ import org.json.JSONArray;
 
 public interface DisplaysChanges {
 
-    void displayPollResult();
+    void clearMap();
 
     void displayTerrain(int mapSize);
 

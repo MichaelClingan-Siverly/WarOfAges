@@ -7,7 +7,6 @@ import android.graphics.drawable.Drawable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.SparseArray;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,9 +20,7 @@ import android.widget.Toast;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 
-import coms309.mike.units.Unit;
 import warofages.gamebackend.DisplaysChanges;
-import warofages.gamebackend.InactivePlayer;
 import warofages.gamebackend.UIbackend;
 
 public class UI extends AppCompatActivity implements DisplaysChanges {
@@ -121,7 +118,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
                     unitIDs.add(field.getInt(null));
                 }
                 catch(IllegalAccessException e){
-
+                    Log.d("findTownMenuIDs", e.getLocalizedMessage());
                 }
             }
         }
@@ -239,29 +236,6 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         return (HexagonMaskView)layout.getChildAt(y);
     }
 
-    public void clearMap(){
-        for(int x = 0; x < mapSize; x++){
-            clearImage(x);
-        }
-    }
-    private void clearImage(int mapID){
-        if(getImage(mapID).getForeground() != null)
-            getImage(mapID).setForeground(null);
-    }
-
-    public void updateUnits(boolean friendly){
-        SparseArray<Unit> units;
-        if(friendly) {
-            units = uiBackend.getPlayer().getMyUnits();
-        }
-        else{
-            units = uiBackend.getPlayer().getEnemyUnits();
-        }
-        for (int i = 0; i < units.size(); i++) {
-            displaySingleUnit(units.valueAt(i), false);
-        }
-    }
-
     public void bottomBarListener(View v){
         boolean resized = false;
         switch (v.getId()){
@@ -311,7 +285,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
             if (v.getId() == MOVE_ICON_ID)
                 uiBackend.beginMoveOrAttack();
             //clicked on one of the add unit buttons
-            //TODO eventually towns will be able to recruit without a friendly unit on it
+            //TODO eventually towns will be able to recruit without a friendly unit on it. Will need to be able to open a town menu without a unit on it
             else if (v.getId() > MOVE_ICON_ID) {
                 int unitIDtoAdd = v.getId() - MOVE_ICON_ID;
                 uiBackend.recruitFromTownMenu(unitIDtoAdd);
@@ -412,75 +386,9 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
             image.setForeground(null);
     }
 
-    //TODO remove this. it's redundant with displayForeground, and the other one doesn't require Unit class
-    private void displaySingleUnit(Unit unit, boolean selected){
-        boolean friendly = false;
-        if(unit.getOwner().equals(username)){
-            friendly = true;
-        }
-        int unitDrawableID = -1;
-        switch(unit.getUnitID()){
-            case 1: //archer
-                if(friendly && selected)
-                    unitDrawableID = R.drawable.unit_archer_friendly_selected;
-                else if(friendly)
-                    unitDrawableID = R.drawable.unit_archer_friendly;
-                else if(selected)
-                    unitDrawableID = R.drawable.unit_archer_hostile_selected;
-                else
-                    unitDrawableID = R.drawable.unit_archer_hostile;
-                break;
-            case 2: //cavalry
-                if(friendly && selected)
-                    unitDrawableID = R.drawable.unit_cavalry_friendly_selected;
-                else if(friendly)
-                    unitDrawableID = R.drawable.unit_cavalry_friendly;
-                else if(selected)
-                    unitDrawableID = R.drawable.unit_cavalry_hostile_selected;
-                else
-                    unitDrawableID = R.drawable.unit_cavalry_hostile;
-                break;
-            case 3: //swordsman
-                if(friendly && selected)
-                    unitDrawableID = R.drawable.unit_sword_friendly_selected;
-                else if(friendly)
-                    unitDrawableID = R.drawable.unit_sword_friendly;
-                else if(selected)
-                    unitDrawableID = R.drawable.unit_sword_hostile_selected;
-                else
-                    unitDrawableID = R.drawable.unit_sword_hostile;
-                break;
-            case 4: //spearman
-                if(friendly && selected)
-                    unitDrawableID = R.drawable.unit_spear_friendly_selected;
-                else if(friendly)
-                    unitDrawableID = R.drawable.unit_spear_friendly;
-                else if(selected)
-                    unitDrawableID = R.drawable.unit_spear_hostile_selected;
-                else
-                    unitDrawableID = R.drawable.unit_spear_hostile;
-                break;
-            case 5: //general
-                if(friendly && selected)
-                    unitDrawableID = R.drawable.unit_general_friendly_selected;
-                else if(friendly)
-                    unitDrawableID = R.drawable.unit_general_friendly;
-                else if(selected)
-                    unitDrawableID = R.drawable.unit_general_hostile_selected;
-                else
-                    unitDrawableID = R.drawable.unit_general_hostile;
-                break;
-        }
-
-        HexagonMaskView image = getImage(unit.getMapID());
-        image.setForeground(getDrawable(unitDrawableID));
-    }
-
     @Override
     public void onBackPressed(){
-        if(!uiBackend.playerIsActive()){
-            ((InactivePlayer)uiBackend.getPlayer()).killPoll();
-        }
+        uiBackend.ensurePollKilled();
         Intent intent = new Intent(getApplicationContext(), com.example.bakes.login_menu.Menu.class);
         intent.putExtra("username", username);
         intent.putExtra("message", "leftGame");
@@ -508,37 +416,35 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         info.setText(text);
     }
 
+    public void clearMap(){
+        for(int x = 0; x < mapSize; x++){
+            clearImage(x);
+        }
+    }
+    private void clearImage(int mapID){
+        if(getImage(mapID).getForeground() != null)
+            getImage(mapID).setForeground(null);
+    }
+
     public void makeToast(String text){
         Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
     }
 
-    @Override
     public void setEndText(String text){
         endText.setText(text);
         endMenu.showAtLocation(scroller, Gravity.BOTTOM, 0, 400);
     }
 
-    @Override
     public void dismissEndText(){
         if(endMenu.isShowing())
             endMenu.dismiss();
     }
 
-    @Override
-    public void displayPollResult(){
-        clearMap();
-        updateUnits(true);
-        updateUnits(false);
-    }
-
-    @Override
     public void displayTerrain(int mapSize){
         this.mapSize = mapSize;
         createTerrainButtons();
         loadTerrainToButtons();
     }
-
-    @Override
     public void changeTownOwnership(int newTerrainID, int mapID){
         loadSingleTerrainToButton(newTerrainID, mapID);
     }
