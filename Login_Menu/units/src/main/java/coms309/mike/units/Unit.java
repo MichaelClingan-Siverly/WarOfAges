@@ -22,6 +22,11 @@ public abstract class Unit {
         this.defense=defense;
     }
 
+    //TODO I'd like to get terrain passed in too, or have a method to set it.
+    public void attack(Unit enemyUnit){
+
+    }
+
     public int getMapID() {
         return mapID;
     }

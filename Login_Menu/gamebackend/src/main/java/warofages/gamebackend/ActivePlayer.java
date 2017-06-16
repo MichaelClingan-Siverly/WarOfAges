@@ -11,6 +11,7 @@ import java.util.Random;
 
 import coms309.mike.clientcomm.ClientComm;
 import coms309.mike.clientcomm.VolleyCallback;
+import coms309.mike.units.Unit;
 
 
 /**
@@ -19,15 +20,16 @@ import coms309.mike.clientcomm.VolleyCallback;
 //TODO well...just about everything...
 public class ActivePlayer extends Player {
 
-    public int moving=-1;
-    public int movespeed;
+    //TODO I may not even need this. Feels redundant compared to UIBackground's mapIdManipulated
+    //mapID of a unit marked to move, or -1 if there is none
+    private int moving =- 1;
+    //TODO why does a player need attack, def, etc?
     private double myattack;
     private double myDefense;
     private double myHealth;
     private double enemyAttack;
     private double enemyDefense;
     private double enemyHealth;
-    private int cash;
     private double stats[]= new double[3];
     private Random rand=new Random();
 
@@ -35,13 +37,14 @@ public class ActivePlayer extends Player {
         super(context, myName);
         setCash(STARTING_CASH);
     }
+
     public ActivePlayer(Player oldPlayer){
         super(oldPlayer.context, oldPlayer.myName);
         this.enemyUnits = oldPlayer.enemyUnits;
         this.myUnits = oldPlayer.myUnits;
-        this.cash = oldPlayer.getCash();
-
+        setCash(oldPlayer.getCash());
     }
+
     public double[] getMyStats(int UnitID){
         int i=myUnit(UnitID);
         myattack=myUnits.get(i).getAttack();
@@ -52,6 +55,7 @@ public class ActivePlayer extends Player {
         stats[2]=myDefense;
         return stats;
     }
+
     public double[] getEnemyStats(int UnitID){
         int i=enemyUnit(UnitID);
         enemyAttack=enemyUnits.get(i).getAttack();
@@ -62,75 +66,79 @@ public class ActivePlayer extends Player {
         stats[2]=enemyDefense;
         return stats;
     }
-    public Boolean setmoving(int unitID){
-        if(moving==-1 && checkIfMine(unitID)){
-            moving=unitID;
-            return true;
-        }
-        moving=-1;
-        return false;
+
+    public void setMoveFromMapID(int unitsMapID){
+        if(unitsMapID != -1 && moving==-1 && getFriendlyUnit(unitsMapID) != null)
+            moving=unitsMapID;
+        else
+            moving=-1;
     }
+    public int getMoveFromMapID(){
+        return moving;
+    }
+
     public int spaceAvaliableMove(int newMapID){
         final int noMove=0;
         final int canMoveTerrain=1;
         final int canMoveEnemy=2;
-        if(checkIfMine(newMapID)){
+        if(getFriendlyUnit(newMapID) != null){
             return noMove;
         }
-        else if (checkIfEnemy(newMapID)) {
+        else if (getEnemyUnit(newMapID) != null) {
             return canMoveEnemy;
         }
         return canMoveTerrain;
     }
+
     /**
      *
      * @param oldID current mapID of the unit.
-     * @param movespeed unit's movement speed
+     * @param moveSpeed unit's movement speed
      * @param unitType type of unit to be checked
      * @return an array of possible moves for a unit, excluding the current position
      */
-    public Integer[] checkArea(int oldID, int movespeed, int unitType, int[] terrainMap, boolean attacking){
+    public Integer[] checkArea(int oldID, int moveSpeed, int unitType, int[] terrainMap, boolean attacking){
         ArrayList<Integer> list = new ArrayList<>();
         int mapSize = terrainMap.length;
-        int rowlength = (int)Math.sqrt(mapSize);
+        int rowLength = (int)Math.sqrt(mapSize);
         //x-value of unit position
-        int rowplace=oldID%rowlength;
+        int rowPlace=oldID%rowLength;
         //y-value of unit position
-        int columnplace = oldID / rowlength;
+        int columnplace = oldID / rowLength;
         //max movement to the right
-        int checkwrapright=rowlength-(rowplace)-1;
+        int checkwrapright=rowLength-(rowPlace)-1;
         //max movement to the left
-        int checkwrapleft=rowplace;
-        int newmovespeedright=movespeed;
-        int newmovespeedleft=movespeed;
+        int checkwrapleft=rowPlace;
+        int newmovespeedright=moveSpeed;
+        int newmovespeedleft=moveSpeed;
 
-        if(checkwrapright<movespeed){
+        if(checkwrapright<moveSpeed){
             newmovespeedright=checkwrapright;
         }
-        if(checkwrapleft<movespeed){
+        if(checkwrapleft<moveSpeed){
             newmovespeedleft=checkwrapleft;
         }
-        int yStart = Math.max(columnplace - movespeed, 0);
-        int yEnd = Math.min(columnplace + movespeed, rowlength - 1);
-        int xStart = rowplace - newmovespeedleft;
-        int xEnd = rowplace + newmovespeedright;
+        int yStart = Math.max(columnplace - moveSpeed, 0);
+        int yEnd = Math.min(columnplace + moveSpeed, rowLength - 1);
+        int xStart = rowPlace - newmovespeedleft;
+        int xEnd = rowPlace + newmovespeedright;
         for(int y = yStart; y <= yEnd; y ++){
             for(int x = xStart; x <= xEnd; x++){
-                if((y * rowlength)+x != oldID) {
-                    int terrainType = terrainMap[(y * rowlength)+x];
+                if((y * rowLength)+x != oldID) {
+                    int terrainType = terrainMap[(y * rowLength)+x];
                     if(attacking && terrainType != 6) {
-                        list.add((y * rowlength) + x);
+                        list.add((y * rowLength) + x);
                     }
                     else if(terrainType != 6){
                         switch(unitType){
                             case 2: //cavalry
                             case 5: //general
                                 if(terrainType != 2 && terrainType != 4){
-                                    list.add((y * rowlength)+x);
+                                    list.add((y * rowLength)+x);
                                 }
                                 break;
                             default: //non-mounted units
-                                list.add((y * rowlength)+x);
+                                list.add((y * rowLength)+x);
                                 break;
                         }
                     }
@@ -140,40 +148,35 @@ public class ActivePlayer extends Player {
         return list.toArray(new Integer[list.size()]);
     }
 
-    private Boolean checkIfMine(int unitID){
-        for(int i=0;i<myUnits.size();i++){
-            if(myUnits.get(i).getMapID()==unitID){
-                return true;
-            }
-        }
-        return false;
-    }
-    private Boolean checkIfEnemy(int unitID){
-        for (int i=0;i<enemyUnits.size();i++){
-            if(enemyUnits.get(i).getMapID()==unitID){
-                return true;
-            }
-        }
-        return false;
-    }
-    private int myUnit(int mapID){
-        for(int i=0;i<myUnits.size();i++){
-            if(myUnits.get(i).getMapID()==mapID){
-                return i;
-            }
-        }
-        return -1;
-    }
-    private int enemyUnit(int mapID){
-        for(int i=0;i<enemyUnits.size();i++){
-            if(enemyUnits.get(i).getMapID()==mapID){
-                return i;
-            }
-        }
-        return -1;
-    }
+//    private int myUnit(int mapID){
+//        for(int i=0;i<myUnits.size();i++){
+//            if(myUnits.get(i).getMapID()==mapID){
+//                return i;
+//            }
+//        }
+//        return -1;
+//    }
+//    private int enemyUnit(int mapID){
+//        for(int i=0;i<enemyUnits.size();i++){
+//            if(enemyUnits.get(i).getMapID()==mapID){
+//                return i;
+//            }
+//        }
+//        return -1;
+//    }
+
+    //TODO do players move? no? Then its a unit thing.
     public void sendMove(int newID, int oldID){
-        int i=myUnit(oldID);
+        Unit u = getFriendlyUnit(oldID);
+        if(u == null) {
+            Log.d("sendMove", "shouldnt try to move a unit that doesn't exist");
+            return;
+        }
+        int i = u.getMapID(); // its mapID = oldID
+        if(getEnemyUnit(newID) != null || getFriendlyUnit(newID) != null){
+            Log.d("sendMove", "can't move a unit onto another unit");
+            return;
+        }
         myUnits.get(i).moveUnit(newID);
         ClientComm comm = new ClientComm(context);
         JSONArray move= new JSONArray();
@@ -198,6 +201,9 @@ public class ActivePlayer extends Player {
             }
         });
     }
+
+    //looks like this is where the actual combat damage is done
+    //TODO move this to unit classes. It's not a player thing
     private void calculateHealth(int enemyMapID,int myMapID, int mynum, int ennum, int[] terrainMap){
         //Just checking area immediately surrounding the attacker
         Integer[] nextToAttacker = checkArea(myMapID, 1,1, terrainMap, true);
@@ -247,6 +253,8 @@ public class ActivePlayer extends Player {
             myHealth=myHealth-enemyAttack*newMDefense*enemyRandom;
         }
     }
+
+    //TODO move this to Unit classes
     private double calculateDefense(double Defense, int mapID, int[] terrainMap){
         if(terrainMap[mapID]==5){
             Defense=Defense+0.15;
@@ -260,12 +268,13 @@ public class ActivePlayer extends Player {
         return Defense;
     }
 
-
-
+    //TODO move to Unit classes
     public String attack(int enemyUnitMapID,int myUnitMapID, int terrainMap[]){
 
         getEnemyStats(enemyUnitMapID);
         getMyStats(myUnitMapID);
+        //mynum and ennum are only checks to see if a unit is on the mapIDs given,
+        // but he doesn't do anything with the checks...
         int mynum=myUnit(myUnitMapID);
         int ennum=enemyUnit(enemyUnitMapID);
         calculateHealth(enemyUnitMapID,myUnitMapID,mynum,ennum, terrainMap);

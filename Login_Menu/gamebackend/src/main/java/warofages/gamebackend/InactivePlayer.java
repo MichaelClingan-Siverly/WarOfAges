@@ -15,32 +15,32 @@ import coms309.mike.units.Swordsman;
 import coms309.mike.units.Unit;
 
 /**
- * Class used ostly for polling the server and converting JSON to/from more useful formats,
+ * Class used mostly for polling the server and converting JSON to/from more useful formats,
  * since other classes do not receive anything quite as extensive
  * Created by Mike on 10/29/2016.
  */
 
-public class InactivePlayer extends Player{
+class InactivePlayer extends Player{
     //This array is compared to the results from the server.
     //I only have one inactive player at a time. NOTE: I did not make this a singleton, so that is not enforced in this class.
     private JSONArray playerAndUnits;
     private PollServerTask poll;
     private boolean isSpectator = false;
 
-    public InactivePlayer(String myName, Context context){
+    InactivePlayer(String myName, Context context){
         //First thing: construct the superclass. Could not make the 1000 a final variable, but it's starting cash
         super(context, myName);
         setCash(STARTING_CASH);
     }
 
-    public InactivePlayer(Player oldPlayer){
+    InactivePlayer(Player oldPlayer){
         super(oldPlayer.context, oldPlayer.myName);
         this.enemyUnits = oldPlayer.enemyUnits;
         this.myUnits = oldPlayer.myUnits;
         setCash(oldPlayer.getCash());
     }
     //not in constructors because it seems a bit much to hold the whole backend when not really needed
-    public void waitForTurn(AsyncResultHandler backend) {
+    void waitForTurn(AsyncResultHandler backend) {
         //initialize the static json array with json objects of units.
         convertToJson();
 
@@ -52,7 +52,7 @@ public class InactivePlayer extends Player{
         */
     }
 
-    public void killPoll(){
+    void killPoll(){
         poll.cancel(true);
     }
 

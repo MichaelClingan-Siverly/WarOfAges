@@ -145,14 +145,6 @@ public class UIbackend implements AsyncResultHandler{
         }
     }
 
-    public SparseArray<Town> getTowns(){
-        return towns;
-    }
-
-    public Player getPlayer(){
-        return player;
-    }
-
     private boolean playerIsActive(){
         return player instanceof ActivePlayer;
     }
@@ -207,9 +199,18 @@ public class UIbackend implements AsyncResultHandler{
     private void beginTurn(){
         if(!playerIsActive()) {
             player = new ActivePlayer(player);
-            player.incrementCash(towns);
+            player.incrementCash(getNumOfMyTowns());
         }
         UI.setInfoBar("Cash: " + player.getCash());
+    }
+
+    private int getNumOfMyTowns(){
+        int numTowns = 0;
+        for(int i = 0; i < towns.size(); i++){
+            if(towns.get(towns.keyAt(i)).getOwner().equals(player.getName()))
+                numTowns++;
+        }
+        return numTowns;
     }
 
     private String checkIfGameOver(){
@@ -241,11 +242,11 @@ public class UIbackend implements AsyncResultHandler{
 
     private Unit getMovingUnit(int mapID){
         //no unit is selected as moving yet, so search the space clicked on (mapID)
-        if (((ActivePlayer)player).moving == -1)
+        if (((ActivePlayer)player).getMoveFromMapID() == -1)
             return getUnitFromMap(mapID, true);
         //a unit has been selected to move, so return that instead of the mapID selected
         else
-            return getUnitFromMap(((ActivePlayer)player).moving, true);
+            return getUnitFromMap(((ActivePlayer)player).getMoveFromMapID(), true);
     }
 
     private Integer[] getMoves(int mapID){
@@ -272,6 +273,7 @@ public class UIbackend implements AsyncResultHandler{
         mapIdManipulated = -1;
     }
 
+    //TODO I want to be able to recruit only on a town - should be a lot easier than this
     public void recruitFromTownMenu(int unitIdToAdd){
         Unit movingUnit = getUnitFromMap(mapIdManipulated, true);
         if(movingUnit != null && !movingUnit.checkIfMoved()){
@@ -323,7 +325,7 @@ public class UIbackend implements AsyncResultHandler{
         //if friendly unit on a town and you click it, open town menu
         if(movingUnit != null && mapIdClicked >= 0 && mapIdClicked < terrainMap.length &&
                 getTerrainAtLocation(mapIdClicked) == 5 && mapIdManipulated == -1
-                && ((ActivePlayer)player).moving == -1) {
+                && ((ActivePlayer)player).getMoveFromMapID() == -1) {
             mapIdManipulated = mapIdClicked;
             UI.displayTownMenu();
         }
@@ -333,7 +335,7 @@ public class UIbackend implements AsyncResultHandler{
                 resetMapIdManipulated();
                 return;
             }
-            if(((ActivePlayer)player).moving == -1){
+            if(((ActivePlayer)player).getMoveFromMapID() == -1){
                 beginMoveOrAttack();
             }
             else{
@@ -344,10 +346,10 @@ public class UIbackend implements AsyncResultHandler{
 
     private void finishMoveOrAttack(Unit movingUnit, int mapIdClicked){
         resetMapIdManipulated();
-        ((ActivePlayer)player).moving = -1;
+        ((ActivePlayer)player).setMoveFromMapID(-1);
 
         Integer[] largestArea = findLargestArea(movingUnit);
-        int moving = ((ActivePlayer)player).moving;
+        int moving = ((ActivePlayer)player).getMoveFromMapID();
         for (int move : largestArea) {
             int mapID = move;
             int moveCheck = ((ActivePlayer)player).spaceAvaliableMove(move);
@@ -399,7 +401,7 @@ public class UIbackend implements AsyncResultHandler{
         highlightSurroundings(movingUnit);
 
         //current location of unit in the terrain map
-        ((ActivePlayer)player).moving = mapIdManipulated;
+        ((ActivePlayer)player).setMoveFromMapID(mapIdManipulated);
         //display unit stats
         double[] stats = ((ActivePlayer)player).getMyStats(mapIdManipulated);
         UI.setInfoBar("Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
