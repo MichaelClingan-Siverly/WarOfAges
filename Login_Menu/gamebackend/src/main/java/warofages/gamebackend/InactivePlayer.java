@@ -170,19 +170,19 @@ class InactivePlayer extends Player{
         Unit unit;
         switch(unitID){
             case 1:
-                unit = new Archer(mapID, unitID, owner,unitHealth);
+                unit = new Archer(mapID, owner,unitHealth);
                 break;
             case 2:
-                unit = new Cavalry(mapID, unitID, owner,unitHealth);
+                unit = new Cavalry(mapID, owner,unitHealth);
                 break;
             case 3:
-                unit = new Swordsman(mapID, unitID, owner,unitHealth);
+                unit = new Swordsman(mapID, owner,unitHealth);
                 break;
             case 4:
-                unit = new Spearman(mapID, unitID, owner,unitHealth);
+                unit = new Spearman(mapID, owner,unitHealth);
                 break;
             case 5:
-                unit = new General(mapID, unitID, owner,unitHealth);
+                unit = new General(mapID, owner,unitHealth);
                 break;
             default:
                 unit = null;

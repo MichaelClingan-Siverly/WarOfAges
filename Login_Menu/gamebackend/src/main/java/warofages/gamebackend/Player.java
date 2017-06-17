@@ -17,7 +17,7 @@ public abstract class Player {
     protected SparseArray<Unit> enemyUnits;
     protected String myName = "a player has no name";
     protected Context context;
-    private int cash;
+    protected int cash;
     protected final int STARTING_CASH = 1000;
     private final int TURN_CASH_BASE = 50;
     private final int TURN_CASH_TOWN = 50;

@@ -3,11 +3,9 @@ package warofages.gamebackend;
 import android.content.Context;
 import android.util.Log;
 import android.util.SparseArray;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.Scanner;
 
 import coms309.mike.clientcomm.ClientComm;
@@ -15,12 +13,12 @@ import coms309.mike.clientcomm.VolleyCallback;
 import coms309.mike.units.Archer;
 import coms309.mike.units.Cavalry;
 import coms309.mike.units.General;
-import coms309.mike.units.RangedUnit;
 import coms309.mike.units.Spearman;
 import coms309.mike.units.Swordsman;
 import coms309.mike.units.Unit;
 
 /**
+ * Handles all of the heavy lifting for the program, telling the UI what to display
  * Created by mike on 6/2/2017.
  */
 
@@ -249,25 +247,25 @@ public class UIbackend implements AsyncResultHandler{
             return getUnitFromMap(((ActivePlayer)player).getMoveFromMapID(), true);
     }
 
-    private Integer[] getMoves(int mapID){
-        Unit u = getUnitFromMap(mapID, true);
-        if(u == null)
-            return new Integer[0];
-        return ((ActivePlayer)player).checkArea(u.getMapID(), u.getMoveSpeed(), u.getUnitID(), terrainMap, false);
-    }
-
-    private Integer[] getAttackRange(int mapID){
-        int attackRange;
-        Unit u = getUnitFromMap(mapID, true);
-        if(u == null)
-            return new Integer[0];
-        else if(u instanceof RangedUnit)
-            attackRange = ((RangedUnit) u).getAttackRange();
-        else
-            attackRange = 1;
-
-        return ((ActivePlayer)player).checkArea(u.getMapID(), attackRange, u.getUnitID(), terrainMap, true);
-    }
+//    private Integer[] getMoves(int mapID){
+//        Unit u = getUnitFromMap(mapID, true);
+//        if(u == null)
+//            return new Integer[0];
+//        return ((ActivePlayer)player).checkSurroundingTerrain(u.getMapID(), u.getMoveSpeed(), u.getUnitID(), terrainMap, false);
+//    }
+//
+//    private Integer[] getAttackRange(int mapID){
+//        int attackRange;
+//        Unit u = getUnitFromMap(mapID, true);
+//        if(u == null)
+//            return new Integer[0];
+//        else if(u instanceof RangedUnit)
+//            attackRange = ((RangedUnit) u).getAttackRange();
+//        else
+//            attackRange = 1;
+//
+//        return ((ActivePlayer)player).checkSurroundingTerrain(u.getMapID(), attackRange, u.getUnitID(), terrainMap, true);
+//    }
 
     public void resetMapIdManipulated(){
         mapIdManipulated = -1;
@@ -278,9 +276,10 @@ public class UIbackend implements AsyncResultHandler{
         Unit movingUnit = getUnitFromMap(mapIdManipulated, true);
         if(movingUnit != null && !movingUnit.checkIfMoved()){
             //take all surrounding tiles and add unit to first empty one
-            Integer[] moves = ((ActivePlayer)player).checkArea(mapIdManipulated, 1, unitIdToAdd, terrainMap, false);
+            int[] moves = new TerrainDijkstra(terrainMap).checkSurroundingTerrain(movingUnit, player, false);
+//            Integer[] moves = ((ActivePlayer)player).checkSurroundingTerrain(mapIdManipulated, 1, unitIdToAdd, terrainMap, false);
             for (int move : moves) {
-                if (move > -1 && move < terrainMap.length && ((ActivePlayer)player).spaceAvaliableMove(move) == 1
+                if (move > -1 && move < terrainMap.length && ((ActivePlayer)player).checkIfUnitOnSpace(move) == 1
                         && getTerrainAtLocation(move) != 6
                         && !(unitIdToAdd == 5 && getTerrainAtLocation(move) == 4)
                         && !(unitIdToAdd == 2 && getTerrainAtLocation(move) == 4)) {
@@ -315,7 +314,7 @@ public class UIbackend implements AsyncResultHandler{
         //if a friendly unit was not selected, see if an enemy unit is there and display its stats if so
         else if(enemyUnit != null) {
             //display unit stats
-            double[] stats = ((ActivePlayer)player).getEnemyStats(mapIdClicked);
+            double[] stats = ((ActivePlayer)player).getUnitStats(mapIdClicked, false);
             UI.setInfoBar("Enemy Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
         }
         //if there was no friendly or enemy unit there, display cash instead
@@ -348,11 +347,11 @@ public class UIbackend implements AsyncResultHandler{
         resetMapIdManipulated();
         ((ActivePlayer)player).setMoveFromMapID(-1);
 
-        Integer[] largestArea = findLargestArea(movingUnit);
+        int[] largestArea = findLargestArea(movingUnit);
         int moving = ((ActivePlayer)player).getMoveFromMapID();
         for (int move : largestArea) {
             int mapID = move;
-            int moveCheck = ((ActivePlayer)player).spaceAvaliableMove(move);
+            int moveCheck = ((ActivePlayer)player).checkIfUnitOnSpace(move);
             int unitID = 0;
             boolean friendly = true;
             switch(moveCheck){
@@ -403,17 +402,17 @@ public class UIbackend implements AsyncResultHandler{
         //current location of unit in the terrain map
         ((ActivePlayer)player).setMoveFromMapID(mapIdManipulated);
         //display unit stats
-        double[] stats = ((ActivePlayer)player).getMyStats(mapIdManipulated);
+        double[] stats = ((ActivePlayer)player).getUnitStats(mapIdManipulated, true);
         UI.setInfoBar("Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
         //close menu
         resetMapIdManipulated();
     }
 
     private void highlightSurroundings(Unit movingUnit){
-        Integer[] largestArea = findLargestArea(movingUnit);
+        int[] largestArea = findLargestArea(movingUnit);
 
         for (int move : largestArea) {
-            int moveCheck = ((ActivePlayer)player).spaceAvaliableMove(move);
+            int moveCheck = ((ActivePlayer)player).checkIfUnitOnSpace(move);
             //Only highlights friendly units is it is the one currently moving
             if(moveCheck == 0 && move == movingUnit.getMapID())
                 UI.displayForeground(move, movingUnit.getUnitID(), true, true);
@@ -428,9 +427,9 @@ public class UIbackend implements AsyncResultHandler{
         }
     }
 
-    private Integer[] findLargestArea(Unit u){
-        Integer moves[] = getMoves(mapIdManipulated);
-        Integer attacks[] = getAttackRange(mapIdManipulated);
+    private int[] findLargestArea(Unit u){
+        int[] moves = new TerrainDijkstra(terrainMap).checkSurroundingTerrain(u, player, false);
+        int[] attacks = new TerrainDijkstra(terrainMap).checkSurroundingTerrain(u, player, true);
 
         if (moves.length > attacks.length && u != null && !u.checkIfMoved())
             return moves;
@@ -504,9 +503,8 @@ public class UIbackend implements AsyncResultHandler{
 
     }
 
-    //TODO I basically just copy/pasted this from UI here. Probably needs some changing
     private void UIAttack(Unit movingUnit, int attackerGridID, int defenderGridID){
-        Integer possibleAttacks[] = getAttackRange(movingUnit.getMapID());
+        int[] possibleAttacks = new TerrainDijkstra(terrainMap).checkSurroundingTerrain(movingUnit, player, true);
         //if enemy if outside of attack range, it will return without attempting an attack
         for(int index : possibleAttacks){
             if(defenderGridID == index){
@@ -518,54 +516,19 @@ public class UIbackend implements AsyncResultHandler{
                     UI.displayForeground(defenderGridID, 0, true, false);
                 }
                 UI.setInfoBar(attackResults);
-                break;
+                return;
             }
         }
     }
 
-    //TODO like with UIAttack, pretty much just copy/paste of the UI version
     private void createUnit(int mapID, int unitID){
-        Unit newUnit;
-        String message;
-        int cost;
-        switch(unitID){
-            case 1:
-                cost = 100;
-                newUnit = new Archer(mapID, unitID, player.getName(), 300.0);
-                message = "Archer";
-                break;
-            case 2:
-                cost = 250;
-                newUnit = new Cavalry(mapID, unitID, player.getName(), 900.0);
-                message = "Cavalry";
-                break;
-            case 3:
-                cost = 150;
-                newUnit = new Swordsman(mapID, unitID, player.getName(), 600.0);
-                message = "Swordsman";
-                break;
-            case 4:
-                cost = 200;
-                newUnit = new Spearman(mapID, unitID, player.getName(), 450.0);
-                message = "spearman";
-                break;
-            case 5:
-                cost = 100000;
-                newUnit = new General(mapID, unitID, player.getName(), 2000.0);
-                message = "General";
-                break;
-            default:
-                return;
-        }
-        if(player.getCash() <= cost) {
-            player.setCash(player.getCash() - cost);
-            message = message + " has been recruited.";
-            //Didn't actually move, but sets its moved boolean because new units cant move
-            newUnit.moveUnit(mapID);
-            newUnit.setHasAttacked(); //ensure the new unit doesn't attack
-            player.getMyUnits().put(mapID, newUnit);
+        final Object[] stuff= ((ActivePlayer)player).createUnit(mapID, unitID);
+        if(stuff.length == 1)
+            UI.makeToast((String)stuff[0]);
+        else {
             //set unit image
             UI.displayForeground(mapID, unitID, true, false);
+            UI.makeToast((String)stuff[1]);
 
             JSONArray requestArray = new JSONArray();
             JSONObject nameObject = new JSONObject();
@@ -576,7 +539,7 @@ public class UIbackend implements AsyncResultHandler{
                 nameObject.put("userID", player.getName());
                 gridObject.put("GridID", mapID);
                 unitObject.put("UnitID", unitID);
-                unitHealth.put("health", newUnit.getHealth());
+                unitHealth.put("health", (double)stuff[1]);
             } catch (JSONException e) {
                 //TODO
             }
@@ -589,14 +552,9 @@ public class UIbackend implements AsyncResultHandler{
                 @Override
                 public void onSuccess(JSONArray result) {
                     Log.d("createUnit", result.toString());
-                    //TODO check results
                 }
             });
         }
-        else{
-            message = "You do not have enough cash.";
-        }
-        UI.makeToast(message);
     }
 
     public void ensurePollKilled(){

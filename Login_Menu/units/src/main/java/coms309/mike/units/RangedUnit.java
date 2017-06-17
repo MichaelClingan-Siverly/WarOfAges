@@ -5,14 +5,22 @@ package coms309.mike.units;
  */
 
 public abstract class RangedUnit extends Unit {
-    private int attackRange;
+    private int minAttackRange;
+    private int maxAttackRange;
 
-    public RangedUnit(int mapID, int unitID, String ownerID, int MovementSpeed,double health, double attack, int attackRange, double defense){
+    public RangedUnit(int mapID, int unitID, String ownerID, int MovementSpeed,double health, double attack, int minAttackRange, int maxAttackRange, double defense){
         super(mapID, unitID, ownerID, MovementSpeed, health, attack, defense);
-        this.attackRange = attackRange;
+        this.minAttackRange = minAttackRange;
+        this.maxAttackRange = maxAttackRange;
     }
 
-    public int getAttackRange(){
-        return attackRange;
+    //may eventually have catapults or something which has to fire a minimum distance
+    @Override
+    public int getMinAttackRange(){
+        return minAttackRange;
+    }
+    @Override
+    public int getMaxAttackRange(){
+        return maxAttackRange;
     }
 }

@@ -5,14 +5,14 @@ public abstract class Unit {
     private int mapID;
     private int unitID;
     private String ownerID;
-    private int moveSpeed;
+    private double moveSpeed;
     private double health;
     public double attack;
     private double defense;
     private boolean moved = false;
     private boolean hasAttacked = false;
 
-    public Unit(int mapID, int unitID, String ownerID, int MovementSpeed,double health, double attack, double defense) {
+    public Unit(int mapID, int unitID, String ownerID, double MovementSpeed, double health, double attack, double defense) {
         this.mapID = mapID;
         this.unitID = unitID;
         this.ownerID = ownerID;
@@ -27,6 +27,15 @@ public abstract class Unit {
 
     }
 
+    public abstract int getCostToRecruit();
+
+    public double getMovementCost(int terID){
+        if(terID == 8)
+            return Double.MAX_VALUE;
+        else
+            return 1;
+    }
+
     public int getMapID() {
         return mapID;
     }
@@ -38,7 +47,7 @@ public abstract class Unit {
     public String getOwner() {
         return ownerID;
     }
-    public int getMoveSpeed() {
+    public double getMoveSpeed() {
         return moveSpeed;
     }
 
@@ -74,5 +83,16 @@ public abstract class Unit {
     //used when creating a unit so that it cant attack that same turn
     public void setHasAttacked(){
         hasAttacked = true;
+    }
+
+    public double[] getMyStats(){
+        return new double[]{health, attack, defense};
+    }
+
+    public int getMinAttackRange(){
+        return 1;
+    }
+    public int getMaxAttackRange(){
+        return 1;
     }
 }

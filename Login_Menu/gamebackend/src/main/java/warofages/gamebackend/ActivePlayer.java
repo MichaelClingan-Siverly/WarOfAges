@@ -11,6 +11,11 @@ import java.util.Random;
 
 import coms309.mike.clientcomm.ClientComm;
 import coms309.mike.clientcomm.VolleyCallback;
+import coms309.mike.units.Archer;
+import coms309.mike.units.Cavalry;
+import coms309.mike.units.General;
+import coms309.mike.units.Spearman;
+import coms309.mike.units.Swordsman;
 import coms309.mike.units.Unit;
 
 
@@ -21,16 +26,10 @@ import coms309.mike.units.Unit;
 public class ActivePlayer extends Player {
 
     //TODO I may not even need this. Feels redundant compared to UIBackground's mapIdManipulated
-    //mapID of a unit marked to move, or -1 if there is none
+    //moving is mapID of a unit marked to move, or -1 if there is none
     private int moving =- 1;
-    //TODO why does a player need attack, def, etc?
-    private double myattack;
-    private double myDefense;
     private double myHealth;
-    private double enemyAttack;
-    private double enemyDefense;
     private double enemyHealth;
-    private double stats[]= new double[3];
     private Random rand=new Random();
 
     public ActivePlayer(Context context, String myName){
@@ -45,26 +44,11 @@ public class ActivePlayer extends Player {
         setCash(oldPlayer.getCash());
     }
 
-    public double[] getMyStats(int UnitID){
-        int i=myUnit(UnitID);
-        myattack=myUnits.get(i).getAttack();
-        myDefense=myUnits.get(i).getDefense();
-        myHealth=myUnits.get(i).getHealth();
-        stats[0]=myHealth;
-        stats[1]=myattack;
-        stats[2]=myDefense;
-        return stats;
-    }
-
-    public double[] getEnemyStats(int UnitID){
-        int i=enemyUnit(UnitID);
-        enemyAttack=enemyUnits.get(i).getAttack();
-        enemyDefense=enemyUnits.get(i).getDefense();
-        enemyHealth=enemyUnits.get(i).getHealth();
-        stats[0]=enemyHealth;
-        stats[1]=enemyAttack;
-        stats[2]=enemyDefense;
-        return stats;
+    public double[] getUnitStats(int unitMapID, boolean friendly){
+        if(friendly)
+            return myUnits.get(unitMapID).getMyStats();
+        else
+            return enemyUnits.get(unitMapID).getMyStats();
     }
 
     public void setMoveFromMapID(int unitsMapID){
@@ -77,7 +61,7 @@ public class ActivePlayer extends Player {
         return moving;
     }
 
-    public int spaceAvaliableMove(int newMapID){
+    public int checkIfUnitOnSpace(int newMapID){
         final int noMove=0;
         final int canMoveTerrain=1;
         final int canMoveEnemy=2;
@@ -90,80 +74,7 @@ public class ActivePlayer extends Player {
         return canMoveTerrain;
     }
 
-    /**
-     *
-     * @param oldID current mapID of the unit.
-     * @param moveSpeed unit's movement speed
-     * @param unitType type of unit to be checked
-     * @return an array of possible moves for a unit, excluding the current position
-     */
-    public Integer[] checkArea(int oldID, int moveSpeed, int unitType, int[] terrainMap, boolean attacking){
-        ArrayList<Integer> list = new ArrayList<>();
-        int mapSize = terrainMap.length;
-        int rowLength = (int)Math.sqrt(mapSize);
-        //x-value of unit position
-        int rowPlace=oldID%rowLength;
-        //y-value of unit position
-        int columnplace = oldID / rowLength;
-        //max movement to the right
-        int checkwrapright=rowLength-(rowPlace)-1;
-        //max movement to the left
-        int checkwrapleft=rowPlace;
-        int newmovespeedright=moveSpeed;
-        int newmovespeedleft=moveSpeed;
 
-        if(checkwrapright<moveSpeed){
-            newmovespeedright=checkwrapright;
-        }
-        if(checkwrapleft<moveSpeed){
-            newmovespeedleft=checkwrapleft;
-        }
-        int yStart = Math.max(columnplace - moveSpeed, 0);
-        int yEnd = Math.min(columnplace + moveSpeed, rowLength - 1);
-        int xStart = rowPlace - newmovespeedleft;
-        int xEnd = rowPlace + newmovespeedright;
-        for(int y = yStart; y <= yEnd; y ++){
-            for(int x = xStart; x <= xEnd; x++){
-                if((y * rowLength)+x != oldID) {
-                    int terrainType = terrainMap[(y * rowLength)+x];
-                    if(attacking && terrainType != 6) {
-                        list.add((y * rowLength) + x);
-                    }
-                    else if(terrainType != 6){
-                        switch(unitType){
-                            case 2: //cavalry
-                            case 5: //general
-                                if(terrainType != 2 && terrainType != 4){
-                                    list.add((y * rowLength)+x);
-                                }
-                                break;
-                            default: //non-mounted units
-                                list.add((y * rowLength)+x);
-                                break;
-                        }
-                    }
-                }
-            }
-        }
-        return list.toArray(new Integer[list.size()]);
-    }
-
-//    private int myUnit(int mapID){
-//        for(int i=0;i<myUnits.size();i++){
-//            if(myUnits.get(i).getMapID()==mapID){
-//                return i;
-//            }
-//        }
-//        return -1;
-//    }
-//    private int enemyUnit(int mapID){
-//        for(int i=0;i<enemyUnits.size();i++){
-//            if(enemyUnits.get(i).getMapID()==mapID){
-//                return i;
-//            }
-//        }
-//        return -1;
-//    }
 
     //TODO do players move? no? Then its a unit thing.
     public void sendMove(int newID, int oldID){
@@ -206,7 +117,7 @@ public class ActivePlayer extends Player {
     //TODO move this to unit classes. It's not a player thing
     private void calculateHealth(int enemyMapID,int myMapID, int mynum, int ennum, int[] terrainMap){
         //Just checking area immediately surrounding the attacker
-        Integer[] nextToAttacker = checkArea(myMapID, 1,1, terrainMap, true);
+        Integer[] nextToAttacker = checkSurroundingTerrain(myMapID, 1,1, terrainMap, true);
         double newEDefense = 1 - calculateDefense(enemyDefense,enemyMapID, terrainMap);
         double newMDefense = 1 - calculateDefense(myDefense,myMapID, terrainMap);
         int myRandom=rand.nextInt(6)+1;
@@ -316,5 +227,56 @@ public class ActivePlayer extends Player {
             return "Success";
         }
         return "Keep Fighting";
+    }
+
+    //TODO like with UIAttack, pretty much just copy/paste of the UI version
+
+    /**
+     * creates the unit
+     * @param mapID place on the map where unit is to be placed upon creation
+     * @param unitID determines which unit is to be created:
+     *               1-archer, 2-cavalry, 3-swordsman, 4-spearman, 5-general
+     * @return array of Objects: index 0 is a message, index 1 is the units health if one was created
+     */
+    public Object[] createUnit(int mapID, int unitID){
+        Unit newUnit;
+        String message;
+        switch(unitID){
+            case 1:
+                newUnit = new Archer(mapID, myName);
+                message = "Archer";
+                break;
+            case 2:
+                newUnit = new Cavalry(mapID, myName);
+                message = "Cavalry";
+                break;
+            case 3:
+                newUnit = new Swordsman(mapID, myName);
+                message = "Swordsman";
+                break;
+            case 4:
+                newUnit = new Spearman(mapID, myName);
+                message = "Spearman";
+                break;
+            case 5:
+                newUnit = new General(mapID, myName);
+                message = "General";
+                break;
+            default:
+                return new Object[]{"This kind of unit does not exist."};
+        }
+        if(cash >= newUnit.getCostToRecruit()) {
+            cash -= newUnit.getCostToRecruit();
+            message = message + " has been recruited.";
+            //Didn't actually move, but sets its moved boolean because new units cant move
+            newUnit.moveUnit(mapID);
+            //ensure the new unit doesn't attack (cant attack on turn it was created)
+            newUnit.setHasAttacked();
+            myUnits.put(mapID, newUnit);
+            return new Object[]{message, newUnit.getHealth()};
+        }
+        else{
+            return new Object[]{"You do not have enough cash."};
+        }
     }
 }
