@@ -32,7 +32,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
     //The number of squares in the map. Used so often that I save the value in here
     private int mapSize;
     //size of the map tiles image
-    int tileSize = 100;
+    private int tileSize = 100;
     //username
     String username = "";
     //if click on town with friendly unit and 0, open town menu.
@@ -68,6 +68,10 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         makeEndMenu();
 
         uiBackend = new UIbackend(getApplicationContext(), username, spectator, this);
+    }
+
+    public int getTileSize(){
+        return tileSize;
     }
 
     //shows whose turn it is

@@ -10,11 +10,6 @@ import java.util.Scanner;
 
 import coms309.mike.clientcomm.ClientComm;
 import coms309.mike.clientcomm.VolleyCallback;
-import coms309.mike.units.Archer;
-import coms309.mike.units.Cavalry;
-import coms309.mike.units.General;
-import coms309.mike.units.Spearman;
-import coms309.mike.units.Swordsman;
 import coms309.mike.units.Unit;
 
 /**
@@ -276,7 +271,7 @@ public class UIbackend implements AsyncResultHandler{
         Unit movingUnit = getUnitFromMap(mapIdManipulated, true);
         if(movingUnit != null && !movingUnit.checkIfMoved()){
             //take all surrounding tiles and add unit to first empty one
-            int[] moves = new TerrainDijkstra(terrainMap).checkSurroundingTerrain(movingUnit, player, false);
+            int[] moves = new terrainCalculations(terrainMap, UI.getTileSize()).checkSurroundingTerrain(movingUnit, player, false);
 //            Integer[] moves = ((ActivePlayer)player).checkSurroundingTerrain(mapIdManipulated, 1, unitIdToAdd, terrainMap, false);
             for (int move : moves) {
                 if (move > -1 && move < terrainMap.length && ((ActivePlayer)player).checkIfUnitOnSpace(move) == 1
@@ -428,8 +423,8 @@ public class UIbackend implements AsyncResultHandler{
     }
 
     private int[] findLargestArea(Unit u){
-        int[] moves = new TerrainDijkstra(terrainMap).checkSurroundingTerrain(u, player, false);
-        int[] attacks = new TerrainDijkstra(terrainMap).checkSurroundingTerrain(u, player, true);
+        int[] moves = new terrainCalculations(terrainMap, UI.getTileSize()).checkSurroundingTerrain(u, player, false);
+        int[] attacks = new terrainCalculations(terrainMap, UI.getTileSize()).checkSurroundingTerrain(u, player, true);
 
         if (moves.length > attacks.length && u != null && !u.checkIfMoved())
             return moves;
@@ -504,7 +499,7 @@ public class UIbackend implements AsyncResultHandler{
     }
 
     private void UIAttack(Unit movingUnit, int attackerGridID, int defenderGridID){
-        int[] possibleAttacks = new TerrainDijkstra(terrainMap).checkSurroundingTerrain(movingUnit, player, true);
+        int[] possibleAttacks = new terrainCalculations(terrainMap, UI.getTileSize()).checkSurroundingTerrain(movingUnit, player, true);
         //if enemy if outside of attack range, it will return without attempting an attack
         for(int index : possibleAttacks){
             if(defenderGridID == index){

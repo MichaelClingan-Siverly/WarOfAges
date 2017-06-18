@@ -13,6 +13,8 @@ public interface DisplaysChanges {
 
     void clearMap();
 
+    int getTileSize();
+
     void displayTerrain(int mapSize);
 
     void displayTownMenu();
