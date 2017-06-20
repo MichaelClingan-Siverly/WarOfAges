@@ -19,8 +19,6 @@ public abstract class Player {
     protected Context context;
     protected int cash;
     protected final int STARTING_CASH = 1000;
-    private final int TURN_CASH_BASE = 50;
-    private final int TURN_CASH_TOWN = 50;
 
     //I need whatever context this player is in. used for the ClientComm stuff
     public Player(Context context, String myName){
@@ -36,11 +34,6 @@ public abstract class Player {
 
     public int getCash(){
         return cash;
-    }
-
-    public void incrementCash(int numOfMyTowns){
-        int cashFromTowns = TURN_CASH_TOWN * numOfMyTowns;
-        cash += (TURN_CASH_BASE + cashFromTowns);
     }
 
     public String getName(){

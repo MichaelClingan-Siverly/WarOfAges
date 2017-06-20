@@ -97,7 +97,7 @@ public class Menu extends AppCompatActivity {
             nameObject.put("userID", name);
         }
         catch(JSONException e){
-
+            Log.d("MenuUserID", e.getLocalizedMessage());
         }
         nameArray.put(nameObject);
         Log.d("nameArray", nameArray.toString());

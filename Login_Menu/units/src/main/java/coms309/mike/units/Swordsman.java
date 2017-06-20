@@ -15,7 +15,7 @@ public class Swordsman extends Unit {
     }
 
     @Override
-    public double getMovementCost(int terID){
+    public double getMovementCost(byte terID){
         double cost;
         switch(terID){
             case 1:
@@ -36,5 +36,29 @@ public class Swordsman extends Unit {
 
     public int getCostToRecruit(){
         return 150;
+    }
+
+    @Override
+    protected double calculateDefenseAfterTerrain(byte terrain) {
+        double modifiedDefense;
+        switch (terrain) {
+            case 1:
+                modifiedDefense = defense - .25;
+                break;
+            case 2:
+                modifiedDefense = defense + .4;
+                break;
+            case 4: //mounted units should not be on a mountain anyway
+                modifiedDefense = defense + .35;
+                break;
+            case 5:
+            case 6:
+            case 7:
+                modifiedDefense = defense + 1;
+                break;
+            default:
+                modifiedDefense = defense;
+        }
+        return modifiedDefense;
     }
 }

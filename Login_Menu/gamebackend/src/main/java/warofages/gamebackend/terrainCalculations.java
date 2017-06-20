@@ -1,13 +1,13 @@
 package warofages.gamebackend;
 
 import android.support.annotation.NonNull;
-import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.PriorityQueue;
 
+import coms309.mike.units.RangedUnit;
 import coms309.mike.units.Unit;
 
 /**
@@ -17,12 +17,11 @@ import coms309.mike.units.Unit;
  * I use http://www.redblobgames.com/grids/hexagons/ a lot for the the line work
  * Created by mike on 6/16/2017.
  */
-//TODO I'm thinking about having certain terrain such as forests and mountains block line of sight for attacks, but Dijkstra's alone wouldn't work for that
 class terrainCalculations {
-    private int[]terrain;
+    private byte[]terrain;
     private int tileSize;
 
-    terrainCalculations(int[] terrainMap, int tileSize){
+    terrainCalculations(byte[] terrainMap, int tileSize){
         terrain = terrainMap;
         this.tileSize = tileSize;
     }
@@ -55,15 +54,19 @@ class terrainCalculations {
         float startY = startRow * heightOfHexagon + heightOfHexagon / (2-(startCol&1));
         float endY = endRow * heightOfHexagon + heightOfHexagon / (2-(endCol&1));
 
+        //I know the line crosses at least (may be on edge between two hexes) this many hexes,
+        //so I sample points at this many evenly spaced sections on the line
         int numSamples = findManhattanDistance(startRow, startCol, endRow, endCol);
 
         //the extra size is because theres a chance the point may be on an edge. I want to check both of them
         Hexagon[] path = new Hexagon[numSamples + 1 + (numSamples)/2];
         Hexagon[] nearestHexagons;
+        //distance between the samples; add onto the x and y each time to follow the slope of the line
         float xSampleDist = numSamples / (endX - startX);
         float ySampleDist = numSamples / (endY - startY);
         float x = startX;
         float y = startY;
+        //the first hexagon the line hits is the one where it started
         path[0] = new Hexagon(startRow, startCol);
 
         //sample variable keeps track of what index in path I insert into.
@@ -150,8 +153,12 @@ class terrainCalculations {
         start.setCost(0);
         queue.add(start);
 
-        if(attacking)
-            distance = unit.getMaxAttackRange();
+        if(attacking) {
+            if(unit instanceof RangedUnit)
+                distance = ((RangedUnit)unit).getMaxAttackRange();
+            else
+                distance = 1;
+        }
         else
             distance = unit.getMoveSpeed();
 
@@ -174,9 +181,9 @@ class terrainCalculations {
             }
         }
 
-        if(attacking){
+        if(attacking && unit instanceof RangedUnit){
             for(TerrainCostTuple t : visited){
-                if(t.getCost() < unit.getMinAttackRange())
+                if(t.getCost() < ((RangedUnit)unit).getMinAttackRange())
                     visited.remove(t);
             }
         }
@@ -192,7 +199,7 @@ class terrainCalculations {
 
     private class TerrainCostTuple implements Comparable<TerrainCostTuple>{
         private double cost;
-        private int terID;
+        private byte terID;
         private int mapID;
 
         TerrainCostTuple(int mapID){

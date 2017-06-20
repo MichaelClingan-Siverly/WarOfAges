@@ -14,7 +14,7 @@ public class General extends Unit {
         super(mapID, 5, owner, 5, 2000.0, 125, .8);
     }
 
-    public double getMovementCost(int terID){
+    public double getMovementCost(byte terID){
         double cost;
         switch(terID){
             case 1:
@@ -32,5 +32,29 @@ public class General extends Unit {
 
     public int getCostToRecruit(){
         return 1000;
+    }
+
+    @Override
+    protected double calculateDefenseAfterTerrain(byte terrain) {
+        double modifiedDefense;
+        switch (terrain) {
+            case 1:
+                modifiedDefense = defense - .15;
+                break;
+            case 2:
+                modifiedDefense = defense - .3;
+                break;
+            case 4: //mounted units should not be on a mountain anyway
+                modifiedDefense = .0001;
+                break;
+            case 5:
+            case 6:
+            case 7:
+                modifiedDefense = defense + .1;
+                break;
+            default:
+                modifiedDefense = defense;
+        }
+        return modifiedDefense;
     }
 }

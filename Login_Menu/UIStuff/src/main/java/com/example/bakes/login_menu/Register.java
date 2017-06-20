@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -19,8 +20,6 @@ import static com.example.bakes.login_menu.R.attr.showText;
 
 public class Register extends AppCompatActivity {
     Button button;
-    private String ruse;
-    private String rpass;
     final Context context=this;
 
     @Override
@@ -40,6 +39,8 @@ public class Register extends AppCompatActivity {
         });
     }
     public void RegtoString(){
+        String ruse;
+        String rpass;
         ClientComm comm = new ClientComm(this.getApplicationContext());
         JSONArray register= new JSONArray();
         JSONObject user = new JSONObject();
@@ -54,7 +55,7 @@ public class Register extends AppCompatActivity {
             pass.put("password", rpass);
         }
         catch(JSONException e){
-            System.out.println(e);
+            Log.d("regToString", e.getLocalizedMessage());
         }
         register.put(user);
         register.put(pass);

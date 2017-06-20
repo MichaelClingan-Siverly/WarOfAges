@@ -7,14 +7,14 @@ package coms309.mike.units;
 public class Spearman extends Unit {
 
     public Spearman(int mapID, String ownerID, double health){
-        super(mapID, 4, ownerID,1,health,58.33333, 0.7);
+        super(mapID, 4, ownerID, 1, health, 25, 0.75);
     }
     public Spearman(int mapID, String owner){
         super(mapID, 4, owner, 1, 450, 58.33333, .7);
     }
 
     @Override
-    public double getMovementCost(int terID){
+    public double getMovementCost(byte terID){
         double cost;
         switch(terID){
             case 3:
@@ -28,5 +28,29 @@ public class Spearman extends Unit {
 
     public int getCostToRecruit(){
         return 200;
+    }
+
+    @Override
+    protected double calculateDefenseAfterTerrain(byte terrain) {
+        double modifiedDefense;
+        switch (terrain) {
+            case 1:
+                modifiedDefense = defense - .25;
+                break;
+            case 2:
+                modifiedDefense = defense + .3;
+                break;
+            case 4:
+                modifiedDefense = defense + .5;
+                break;
+            case 5:
+            case 6:
+            case 7:
+                modifiedDefense = defense + .4;
+                break;
+            default:
+                modifiedDefense = defense;
+        }
+        return modifiedDefense;
     }
 }

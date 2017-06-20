@@ -1,16 +1,8 @@
 package warofages.gamebackend;
 import android.content.Context;
 import android.util.Log;
+import android.util.SparseArray;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.Random;
-
-import coms309.mike.clientcomm.ClientComm;
-import coms309.mike.clientcomm.VolleyCallback;
 import coms309.mike.units.Archer;
 import coms309.mike.units.Cavalry;
 import coms309.mike.units.General;
@@ -21,27 +13,50 @@ import coms309.mike.units.Unit;
 
 /**
  * Created by Bakes on 10/31/16.
+ * HEAVILY modified by mike
  */
-//TODO well...just about everything...
 public class ActivePlayer extends Player {
 
     //TODO I may not even need this. Feels redundant compared to UIBackground's mapIdManipulated
     //moving is mapID of a unit marked to move, or -1 if there is none
     private int moving =- 1;
-    private double myHealth;
-    private double enemyHealth;
-    private Random rand=new Random();
 
-    public ActivePlayer(Context context, String myName){
+    public ActivePlayer(Context context, String myName, SparseArray<Town> towns){
         super(context, myName);
         setCash(STARTING_CASH);
+        incrementCash(getNumOfMyTowns(towns));
+        activateUnits();
     }
 
-    public ActivePlayer(Player oldPlayer){
+    public ActivePlayer(Player oldPlayer, SparseArray<Town> towns){
         super(oldPlayer.context, oldPlayer.myName);
         this.enemyUnits = oldPlayer.enemyUnits;
         this.myUnits = oldPlayer.myUnits;
         setCash(oldPlayer.getCash());
+        incrementCash(getNumOfMyTowns(towns));
+        activateUnits();
+    }
+
+    private void incrementCash(int numOfMyTowns){
+        final int TURN_CASH_BASE = 50;
+        final int TURN_CASH_TOWN = 50;
+        int cashFromTowns = TURN_CASH_TOWN * numOfMyTowns;
+        cash += (TURN_CASH_BASE + cashFromTowns);
+    }
+
+    private int getNumOfMyTowns(SparseArray<Town> towns){
+        int numTowns = 0;
+        for(int i = 0; i < towns.size(); i++){
+            if(towns.valueAt(i).getOwner().equals(myName))
+                numTowns++;
+        }
+        return numTowns;
+    }
+
+    private void activateUnits(){
+        for(int i = 0; i < myUnits.size(); i++){
+            myUnits.valueAt(i).resetMovedAndAttacked();
+        }
     }
 
     public double[] getUnitStats(int unitMapID, boolean friendly){
@@ -61,6 +76,21 @@ public class ActivePlayer extends Player {
         return moving;
     }
 
+    public boolean moveUnit(int oldMapID, int newMapID){
+        Unit u = getFriendlyUnit(oldMapID);
+        if(u == null) {
+            Log.d("sendMove", "shouldnt try to move a unit that doesn't exist");
+            return false;
+        }
+        int i = u.getMapID(); // its mapID = oldID
+        if(getEnemyUnit(newMapID) != null || getFriendlyUnit(newMapID) != null){
+            Log.d("sendMove", "can't move a unit onto another unit");
+            return false;
+        }
+        myUnits.get(i).moveUnit(newMapID);
+        return true;
+    }
+
     public int checkIfUnitOnSpace(int newMapID){
         final int noMove=0;
         final int canMoveTerrain=1;
@@ -74,159 +104,27 @@ public class ActivePlayer extends Player {
         return canMoveTerrain;
     }
 
+    public String attack(Unit attacker, byte attackerTerrain, Unit defender, byte defenderTerrain){
+        attacker.attack(defender, attackerTerrain, defenderTerrain);
+        boolean myUnitKilled = false;
+        boolean enemyUnitKilled = false;
+        if(attacker.getHealth() <= 0){
+            myUnits.remove(attacker.getMapID());
+            myUnitKilled = true;
+        }
+        if(defender.getHealth() <= 0){
+            enemyUnits.remove(defender.getMapID());
+            enemyUnitKilled = true;
+        }
 
-
-    //TODO do players move? no? Then its a unit thing.
-    public void sendMove(int newID, int oldID){
-        Unit u = getFriendlyUnit(oldID);
-        if(u == null) {
-            Log.d("sendMove", "shouldnt try to move a unit that doesn't exist");
-            return;
-        }
-        int i = u.getMapID(); // its mapID = oldID
-        if(getEnemyUnit(newID) != null || getFriendlyUnit(newID) != null){
-            Log.d("sendMove", "can't move a unit onto another unit");
-            return;
-        }
-        myUnits.get(i).moveUnit(newID);
-        ClientComm comm = new ClientComm(context);
-        JSONArray move= new JSONArray();
-        JSONObject juseid = new JSONObject();
-        JSONObject jnewID = new JSONObject();
-        JSONObject joldID = new JSONObject();
-        try{
-            juseid.put("userID",myName);
-            jnewID.put("newID",newID); //old mapID of the unit
-            joldID.put("oldID",oldID); //new mapID of the unit
-        }
-        catch(JSONException e){
-
-        }
-        move.put(juseid);
-        move.put(jnewID);
-        move.put(joldID);
-        comm.serverPostRequest("movement.php", move, new VolleyCallback<JSONArray>() {
-            @Override
-            public void onSuccess(JSONArray result) {
-                //Done by UI
-            }
-        });
-    }
-
-    //looks like this is where the actual combat damage is done
-    //TODO move this to unit classes. It's not a player thing
-    private void calculateHealth(int enemyMapID,int myMapID, int mynum, int ennum, int[] terrainMap){
-        //Just checking area immediately surrounding the attacker
-        Integer[] nextToAttacker = checkSurroundingTerrain(myMapID, 1,1, terrainMap, true);
-        double newEDefense = 1 - calculateDefense(enemyDefense,enemyMapID, terrainMap);
-        double newMDefense = 1 - calculateDefense(myDefense,myMapID, terrainMap);
-        int myRandom=rand.nextInt(6)+1;
-        int enemyRandom=rand.nextInt(6)+1;
-        int myUnitType = myUnits.get(mynum).getUnitID();
-        int enemyUnitType = enemyUnits.get(ennum).getUnitID();
-        if(myUnitType==2 && enemyUnitType==1){
-            enemyHealth=enemyHealth-1.5*myattack*newEDefense*myRandom;
-            myHealth=myHealth-0.5*enemyAttack*newMDefense*enemyRandom;
-        }
-        else if(myUnitType==4 && enemyUnitType==2){
-            enemyHealth=enemyHealth-1.5*myattack*newEDefense*myRandom;
-            myHealth=myHealth-0.5*enemyAttack*newMDefense*enemyRandom;
-        }
-        else if(myUnitType==5 && enemyUnitType==4){
-            enemyHealth=enemyHealth-1.5*myattack*newEDefense*myRandom;
-            myHealth=myHealth-0.5*enemyAttack*newMDefense*enemyRandom;
-        }
-        else if(myUnitType==3 && enemyUnitType==5){
-            enemyHealth=enemyHealth-1.5*myattack*newEDefense*myRandom;
-            myHealth=myHealth-0.5*enemyAttack*newMDefense*enemyRandom;
-        }
-        else if(myUnitType==1 && enemyUnitType==3){
-            enemyHealth=enemyHealth-1.5*myattack*newEDefense*myRandom;
-            for(int mapID : nextToAttacker){
-                if(enemyMapID == mapID){
-                    myHealth=myHealth-0.5*enemyAttack*newMDefense*enemyRandom;
-                }
-            }
-            //else, my health doesnt change (attacked at range)
-        }
-        //archers dont get attacked back when attacking at range, unless its by an archer
-        else if(myUnitType == 1 && enemyUnitType != 1){
-            enemyHealth = enemyHealth - myattack*enemyDefense*myRandom;
-            for(int mapID : nextToAttacker){
-                if(enemyMapID == mapID){
-                    myHealth=myHealth-enemyAttack*newMDefense*enemyRandom;
-                }
-            }
-            //else, my health doesnt change (attacked at range)
-        }
-        else{
-            enemyHealth=enemyHealth-myattack*enemyDefense*myRandom;
-            myHealth=myHealth-enemyAttack*newMDefense*enemyRandom;
-        }
-    }
-
-    //TODO move this to Unit classes
-    private double calculateDefense(double Defense, int mapID, int[] terrainMap){
-        if(terrainMap[mapID]==5){
-            Defense=Defense+0.15;
-        }
-        else if(terrainMap[mapID]==2){
-            Defense=Defense+0.05;
-        }
-        else if(terrainMap[mapID]==1){
-            Defense=Defense-0.1;
-        }
-        return Defense;
-    }
-
-    //TODO move to Unit classes
-    public String attack(int enemyUnitMapID,int myUnitMapID, int terrainMap[]){
-
-        getEnemyStats(enemyUnitMapID);
-        getMyStats(myUnitMapID);
-        //mynum and ennum are only checks to see if a unit is on the mapIDs given,
-        // but he doesn't do anything with the checks...
-        int mynum=myUnit(myUnitMapID);
-        int ennum=enemyUnit(enemyUnitMapID);
-        calculateHealth(enemyUnitMapID,myUnitMapID,mynum,ennum, terrainMap);
-        myUnits.get(mynum).setHealth(myHealth);
-        enemyUnits.get(ennum).setHealth(enemyHealth);
-        myUnits.get(mynum).setHasAttacked();
-        ClientComm comm = new ClientComm(context);
-        JSONArray jsonhealth = new JSONArray();
-        JSONObject myObjectID = new JSONObject();
-        JSONObject myObjectHealth = new JSONObject();
-        JSONObject enemyObjectID= new JSONObject();
-        JSONObject enemyObjectHealth= new JSONObject();
-        try{
-            myObjectID.put("myUnitID",myUnitMapID);
-            myObjectHealth.put("myUnitHealth",myHealth);
-            enemyObjectID.put("enemyUnitID",enemyUnitMapID);
-            enemyObjectHealth.put("enemyUnitHealth",enemyHealth);
-
-        }
-        catch (JSONException e){
-            Log.d("formAttackJSON", e.getLocalizedMessage());
-        }
-        jsonhealth.put(myObjectID);
-        jsonhealth.put(myObjectHealth);
-        jsonhealth.put(enemyObjectID);
-        jsonhealth.put(enemyObjectHealth);
-        comm.serverPostRequest("attack.php", jsonhealth, new VolleyCallback<JSONArray>() {
-            @Override
-            public void onSuccess(JSONArray result) {
-
-            }
-        });
-        if(myHealth<=0){
-            myUnits.remove(mynum);
-            return "Fail";
-        }
-        if(enemyHealth<=0){
-            enemyUnits.remove(ennum);
-            return "Success";
-        }
-        return "Keep Fighting";
+        if(myUnitKilled && enemyUnitKilled)
+            return "Draw";
+        else if(myUnitKilled)
+            return "Your unit died";
+        else if(enemyUnitKilled)
+            return "Enemy unit killed";
+        else
+            return "Keep Fighting";
     }
 
     //TODO like with UIAttack, pretty much just copy/paste of the UI version

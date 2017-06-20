@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -62,7 +63,6 @@ public class Login extends AppCompatActivity {
 
     }
     public void loginCheck(){
-        final Context context=this;
         button= (Button) findViewById(R.id.letmein);
         button.setOnClickListener(new OnClickListener() {
             @Override
@@ -86,7 +86,7 @@ public class Login extends AppCompatActivity {
             password.put("password", pass);
         }
         catch(JSONException e){
-            System.out.println(e);
+            Log.d("loginJSON", e.getLocalizedMessage());
         }
 
         login.put(user);

@@ -25,7 +25,7 @@ public class UIbackend implements AsyncResultHandler{
     private SparseArray<Town> towns;
     private DisplaysChanges UI;
     private ClientComm comm;
-    private int[] terrainMap;
+    private byte[] terrainMap;
     private int mapIdManipulated;
     private Player player;
     private boolean gameOn;
@@ -51,13 +51,12 @@ public class UIbackend implements AsyncResultHandler{
                         String mapper = result.getJSONObject(1).getString("Map");
                         Scanner scan = new Scanner(mapper).useDelimiter(":");
                         int mapSize = scan.nextInt();
-
-                        terrainMap = new int[mapSize];
+                        terrainMap = new byte[mapSize];
 
                         int tID = 0;
                         while (scan.hasNextInt()) {
                             int terrainCode = scan.nextInt();
-                            terrainMap[tID] = terrainCode;
+                            terrainMap[tID] = (byte)terrainCode;
                             //these are subject to change, but I still need to differentiate them for now
                             switch(terrainCode){
                                 case FRIENDLY_TOWN_ID:
@@ -70,7 +69,6 @@ public class UIbackend implements AsyncResultHandler{
                                     addTown(tID, "null");
                                     break;
                             }
-
                             tID++;
                         }
                         scan.close();
@@ -125,9 +123,9 @@ public class UIbackend implements AsyncResultHandler{
                 if(owner.equals(player.getName()) && !towns.get(mapID).getOwner().equals(player.getName())
                         || owner.equals(player.getEnemyName()) && !towns.get(mapID).getOwner().equals(player.getEnemyName())){
                     if(owner.equals(player.getName()))
-                        newTerID = 6;
-                    else
                         newTerID = 5;
+                    else
+                        newTerID = 6;
                     towns.get(mapID).setOwner(owner);
                     UI.changeTownOwnership(newTerID, mapID);
                 }
@@ -191,19 +189,9 @@ public class UIbackend implements AsyncResultHandler{
 
     private void beginTurn(){
         if(!playerIsActive()) {
-            player = new ActivePlayer(player);
-            player.incrementCash(getNumOfMyTowns());
+            player = new ActivePlayer(player, towns);
         }
         UI.setInfoBar("Cash: " + player.getCash());
-    }
-
-    private int getNumOfMyTowns(){
-        int numTowns = 0;
-        for(int i = 0; i < towns.size(); i++){
-            if(towns.get(towns.keyAt(i)).getOwner().equals(player.getName()))
-                numTowns++;
-        }
-        return numTowns;
     }
 
     private String checkIfGameOver(){
@@ -242,26 +230,6 @@ public class UIbackend implements AsyncResultHandler{
             return getUnitFromMap(((ActivePlayer)player).getMoveFromMapID(), true);
     }
 
-//    private Integer[] getMoves(int mapID){
-//        Unit u = getUnitFromMap(mapID, true);
-//        if(u == null)
-//            return new Integer[0];
-//        return ((ActivePlayer)player).checkSurroundingTerrain(u.getMapID(), u.getMoveSpeed(), u.getUnitID(), terrainMap, false);
-//    }
-//
-//    private Integer[] getAttackRange(int mapID){
-//        int attackRange;
-//        Unit u = getUnitFromMap(mapID, true);
-//        if(u == null)
-//            return new Integer[0];
-//        else if(u instanceof RangedUnit)
-//            attackRange = ((RangedUnit) u).getAttackRange();
-//        else
-//            attackRange = 1;
-//
-//        return ((ActivePlayer)player).checkSurroundingTerrain(u.getMapID(), attackRange, u.getUnitID(), terrainMap, true);
-//    }
-
     public void resetMapIdManipulated(){
         mapIdManipulated = -1;
     }
@@ -272,7 +240,6 @@ public class UIbackend implements AsyncResultHandler{
         if(movingUnit != null && !movingUnit.checkIfMoved()){
             //take all surrounding tiles and add unit to first empty one
             int[] moves = new terrainCalculations(terrainMap, UI.getTileSize()).checkSurroundingTerrain(movingUnit, player, false);
-//            Integer[] moves = ((ActivePlayer)player).checkSurroundingTerrain(mapIdManipulated, 1, unitIdToAdd, terrainMap, false);
             for (int move : moves) {
                 if (move > -1 && move < terrainMap.length && ((ActivePlayer)player).checkIfUnitOnSpace(move) == 1
                         && getTerrainAtLocation(move) != 6
@@ -341,7 +308,7 @@ public class UIbackend implements AsyncResultHandler{
     private void finishMoveOrAttack(Unit movingUnit, int mapIdClicked){
         resetMapIdManipulated();
         ((ActivePlayer)player).setMoveFromMapID(-1);
-
+        //TODO, if I'm given the movngUnit, using player to get the movingUnit's mapId seems unnecessary
         int[] largestArea = findLargestArea(movingUnit);
         int moving = ((ActivePlayer)player).getMoveFromMapID();
         for (int move : largestArea) {
@@ -360,7 +327,7 @@ public class UIbackend implements AsyncResultHandler{
                     break;
                 case 1: //"canMoveTerrain"
                     if(move == mapIdClicked && !movingUnit.checkIfMoved()){
-                        ((ActivePlayer)player).sendMove(mapIdClicked, moving);
+                        sendMove(mapIdClicked, moving);
                         //set the new foreground. It's friendly because I can't move an unfriendly unit
                         mapID = movingUnit.getMapID();
                         unitID = movingUnit.getUnitID();
@@ -378,12 +345,38 @@ public class UIbackend implements AsyncResultHandler{
                     //after its un-highlighted, do combat
                     // (I un-highlight first in case the attack is out of range)
                     if (move == mapIdClicked && !movingUnit.checkIfAttacked()) {
-                        UIAttack(movingUnit, moving, move);
+                        UIAttack(movingUnit, player.getEnemyUnit(move));
                     }
                     break;
             }
             UI.displayForeground(mapID, unitID, friendly, false);
         }
+    }
+
+    private void sendMove(int newID, int oldID){
+        if(!((ActivePlayer)player).moveUnit(oldID, newID))
+            return;
+        JSONArray move= new JSONArray();
+        JSONObject juseid = new JSONObject();
+        JSONObject jnewID = new JSONObject();
+        JSONObject joldID = new JSONObject();
+        try{
+            juseid.put("userID",player.getName());
+            jnewID.put("newID",newID); //old mapID of the unit
+            joldID.put("oldID",oldID); //new mapID of the unit
+        }
+        catch(JSONException e){
+            Log.d("sendMoveJSON", e.getLocalizedMessage());
+        }
+        move.put(juseid);
+        move.put(jnewID);
+        move.put(joldID);
+        comm.serverPostRequest("movement.php", move, new VolleyCallback<JSONArray>() {
+            @Override
+            public void onSuccess(JSONArray result) {
+                //not much to show since the units already moved
+            }
+        });
     }
 
     public void beginMoveOrAttack(){
@@ -498,32 +491,78 @@ public class UIbackend implements AsyncResultHandler{
 
     }
 
-    private void UIAttack(Unit movingUnit, int attackerGridID, int defenderGridID){
-        int[] possibleAttacks = new terrainCalculations(terrainMap, UI.getTileSize()).checkSurroundingTerrain(movingUnit, player, true);
+    private void UIAttack(Unit attackingUnit, Unit defendingUnit){
+        int[] possibleAttacks = new terrainCalculations(terrainMap, UI.getTileSize()).checkSurroundingTerrain(attackingUnit, player, true);
         //if enemy if outside of attack range, it will return without attempting an attack
         for(int index : possibleAttacks){
-            if(defenderGridID == index){
-                String attackResults = ((ActivePlayer)player).attack(defenderGridID, attackerGridID, terrainMap);
-                if (attackResults.equals("Fail")) {
-                    UI.displayForeground(attackerGridID, 0, true, false);
-                }
-                else if (attackResults.equals("Success")) {
-                    UI.displayForeground(defenderGridID, 0, true, false);
+            if(defendingUnit.getMapID() == index){
+                int myMapID = attackingUnit.getMapID();
+                int enemyMapID = defendingUnit.getMapID();
+                double myHealth, enemyHealth;
+                byte attackerTerrain = terrainMap[myMapID];
+                byte defenderTerrain = terrainMap[enemyMapID];
+                String attackResults = ((ActivePlayer)player).attack(attackingUnit, attackerTerrain, defendingUnit, defenderTerrain);
+                switch(attackResults){
+                    case "Draw":
+                        UI.displayForeground(attackingUnit.getMapID(), 0, true, false);
+                        UI.displayForeground(defendingUnit.getMapID(), 0, true, false);
+                        myHealth = 0;
+                        enemyHealth = 0;
+                        break;
+                    case "Your unit died":
+                        UI.displayForeground(attackingUnit.getMapID(), 0, true, false);
+                        myHealth = 0;
+                        enemyHealth = defendingUnit.getHealth();
+                        break;
+                    case "Enemy unit killed":
+                        UI.displayForeground(defendingUnit.getMapID(), 0, true, false);
+                        myHealth = attackingUnit.getHealth();
+                        enemyHealth = 0;
+                        break;
+                    default:
+                        myHealth = attackingUnit.getHealth();
+                        enemyHealth = defendingUnit.getHealth();
                 }
                 UI.setInfoBar(attackResults);
+                sendAttack(myMapID, myHealth, enemyMapID, enemyHealth);
                 return;
             }
         }
     }
 
+    private void sendAttack(int myUnitMapID, double myUnitHealth, int enemyUnitMapID, double enemyUnitHealth) {
+        JSONArray jsonhealth = new JSONArray();
+        JSONObject myObjectID = new JSONObject();
+        JSONObject myObjectHealth = new JSONObject();
+        JSONObject enemyObjectID = new JSONObject();
+        JSONObject enemyObjectHealth = new JSONObject();
+        try {
+            myObjectID.put("myUnitID", myUnitMapID);
+            myObjectHealth.put("myUnitHealth", myUnitHealth);
+            enemyObjectID.put("enemyUnitID", enemyUnitMapID);
+            enemyObjectHealth.put("enemyUnitHealth", enemyUnitHealth);
+
+        } catch (JSONException e) {
+            Log.d("formAttackJSON", e.getLocalizedMessage());
+        }
+        jsonhealth.put(myObjectID);
+        jsonhealth.put(myObjectHealth);
+        jsonhealth.put(enemyObjectID);
+        jsonhealth.put(enemyObjectHealth);
+        comm.serverPostRequest("attack.php", jsonhealth, new VolleyCallback<JSONArray>() {
+            @Override
+            public void onSuccess(JSONArray result) {
+                //could update the UI here, but since I already have the info I'd rather do it before
+            }
+        });
+    }
+
     private void createUnit(int mapID, int unitID){
         final Object[] stuff= ((ActivePlayer)player).createUnit(mapID, unitID);
-        if(stuff.length == 1)
-            UI.makeToast((String)stuff[0]);
-        else {
+        UI.makeToast((String)stuff[0]);
+        if(stuff.length > 1){
             //set unit image
             UI.displayForeground(mapID, unitID, true, false);
-            UI.makeToast((String)stuff[1]);
 
             JSONArray requestArray = new JSONArray();
             JSONObject nameObject = new JSONObject();
