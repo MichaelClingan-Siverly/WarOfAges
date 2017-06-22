@@ -82,12 +82,15 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         endText.setText(R.string.EndTextDefault);
+        endText.setTextColor(Color.BLACK);
         popLayout.addView(endText, layoutParams);
         endMenu.setContentView(popLayout);
         endMenu.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
         endMenu.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
         //I didn't like how ugly the black box is
-        endMenu.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        endMenu.setBackgroundDrawable(new ColorDrawable(Color.GRAY));
+//        endMenu.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        endMenu.getBackground().setAlpha(127); // 50% opaque
     }
 
     //initialize townMenu window
@@ -241,43 +244,48 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
     }
 
     public void bottomBarListener(View v){
-        boolean resized = false;
-        switch (v.getId()){
-            case R.id.endTurn:
-                uiBackend.endTurn();
-                return;
-            case R.id.zoomIn:
-                if(tileSize < 500) {
-                    tileSize += 100;
-                    resized = true;
-                }
-                break;
-            case R.id.zoomOut:
-                if(tileSize > 100) {
-                    tileSize -= 100;
-                    resized = true;
-                }
-                break;
+        try {
+            switch (v.getId()) {
+                case R.id.endTurn:
+                    uiBackend.endTurn();
+                    return;
+                case R.id.zoomIn:
+                    if (tileSize < 500) {
+                        tileSize += 100;
+                        resize();
+                    }
+                    break;
+                case R.id.zoomOut:
+                    if (tileSize > 100) {
+                        tileSize -= 100;
+                        resize();
+                    }
+                    break;
+            }
         }
-        if(resized){
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(tileSize, tileSize);
-            for (int id = 0; id < mapSize; id++) {
-                HexagonMaskView image = getImage(id);
-                image.setLayoutParams(params);
-            }
-            //loop through all columns after the first and adjust their parameters
-            LinearLayout rootLayout = (LinearLayout) findViewById(R.id.mapMakerLayout);
-            LinearLayout column;
-            //number of columns = number of rows, since I only make square maps, so I can use count as rowLength
-            int count = rootLayout.getChildCount();
+        catch(Exception e){
+            Log.d("bottomBar", e.getLocalizedMessage());
+        }
+    }
 
-            for (int i = 1; i < count; i++) {
-                column = (LinearLayout)rootLayout.getChildAt(i);
-                if(i % 2 == 1)
-                    adjustColumnParams(column, count, false);
-                else
-                    adjustColumnParams(column, count, true);
-            }
+    private void resize (){
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(tileSize, tileSize);
+        for (int id = 0; id < mapSize; id++) {
+            HexagonMaskView image = getImage(id);
+            image.setLayoutParams(params);
+        }
+        //loop through all columns after the first and adjust their parameters
+        LinearLayout rootLayout = (LinearLayout) findViewById(R.id.gameLayout);
+        LinearLayout column;
+        //number of columns = number of rows, since I only make square maps, so I can use count as rowLength
+        int count = rootLayout.getChildCount();
+
+        for (int i = 1; i < count; i++) {
+            column = (LinearLayout)rootLayout.getChildAt(i);
+            if(i % 2 == 1)
+                adjustColumnParams(column, count, false);
+            else
+                adjustColumnParams(column, count, true);
         }
     }
 
@@ -393,6 +401,7 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
     @Override
     public void onBackPressed(){
         uiBackend.ensurePollKilled();
+        movedToOtherIntent = true;
         Intent intent = new Intent(getApplicationContext(), com.example.bakes.login_menu.Menu.class);
         intent.putExtra("username", username);
         intent.putExtra("message", "leftGame");
@@ -402,9 +411,8 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
 
     @Override
     public void onDestroy(){
-
+        endMenu.dismiss();
         if(isFinishing() && !movedToOtherIntent) {
-            endMenu.dismiss();
             Intent forceLogout = new Intent(this, com.example.bakes.login_menu.LogoutBackgroundService.class);
             forceLogout.putExtra("username", username);
             startService(forceLogout);

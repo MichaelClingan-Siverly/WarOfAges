@@ -164,7 +164,8 @@ class terrainCalculations {
 
         while(!queue.isEmpty()){
             TerrainCostTuple lowestCostTuple = queue.poll();
-            visited.add(lowestCostTuple);
+            if(lowestCostTuple.getMapID() != unit.getMapID())
+                visited.add(lowestCostTuple);
             TerrainCostTuple[] neighbors = getNeighborTuples(lowestCostTuple.getMapID());
             for(TerrainCostTuple tuple : neighbors){
                 //projectiles move the same speed in the air regardless of terrain: hence the unit cost
@@ -174,10 +175,14 @@ class terrainCalculations {
                 else if(player.getFriendlyUnit(tuple.getMapID()) == null
                         && player.getEnemyUnit(tuple.getMapID()) == null)
                     tuple.setCost(lowestCostTuple.getCost() + unit.getMovementCost(tuple.terID));
+                //if there is a unit there, this unit can't move through it.
 
                 //This doesn't care about distance to all mapIDs, only those reachable by the unit
-                if(tuple.getCost() <= distance)
+                if(tuple.getCost() < distance)
                     queue.add(tuple);
+                //assumes that there are no spaces available for 0 cost
+                else if(tuple.getCost() == distance)
+                    visited.add(tuple);
             }
         }
 
@@ -250,29 +255,40 @@ class terrainCalculations {
         ArrayList<Integer> neighbors = new ArrayList<>();
         boolean top = false, bot = false, left = false, right = false;
         int rowLength = (int) Math.sqrt(terrain.length);
+        int column = mapID / rowLength;
 
         if (mapID % rowLength == 0)
             top = true;
         else if (mapID % rowLength == rowLength - 1)
             bot = true;
-        if (mapID / rowLength == 0)
+        if (column == 0)
             left = true;
-        else if (mapID / rowLength == rowLength - 1)
+        else if (column == rowLength - 1)
             right = true;
 
-        if(!top && !left)
-            neighbors.add(mapID - rowLength - 1);
-        if(!left)
-            neighbors.add(mapID-rowLength);
+        //don't check if top and left or right, because they can't be accessed from the hexagon
         if(!top)
             neighbors.add(mapID - 1);
-        if(!bot)
-            neighbors.add(mapID + 1);
-        //don't check if bot and left or right, because they can't be accessed from the hexagon
-        if(!top && !right)
-            neighbors.add(mapID + rowLength-1);
+        if(!left)
+            neighbors.add(mapID - rowLength);
         if(!right)
             neighbors.add(mapID + rowLength);
+        if(!bot)
+            neighbors.add(mapID + 1);
+        //odd columns
+        if((column & 1) == 1){
+            if(!bot && !left)
+                neighbors.add(mapID - rowLength + 1);
+            if(!bot && !right)
+                neighbors.add(mapID + rowLength + 1);
+        }
+        //even columns
+        else{
+            if(!top && !left)
+                neighbors.add(mapID - rowLength - 1);
+            if(!top && !right)
+                neighbors.add(mapID + rowLength - 1);
+        }
         return neighbors.toArray(new Integer[neighbors.size()]);
     }
 }

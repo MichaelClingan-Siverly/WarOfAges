@@ -88,6 +88,11 @@ public class ActivePlayer extends Player {
             return false;
         }
         myUnits.get(i).moveUnit(newMapID);
+        if(oldMapID != newMapID){
+            myUnits.put(newMapID, myUnits.get(i));
+            myUnits.put(i, null);
+        }
+
         return true;
     }
 

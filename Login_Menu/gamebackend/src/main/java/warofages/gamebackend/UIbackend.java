@@ -26,6 +26,8 @@ public class UIbackend implements AsyncResultHandler{
     private DisplaysChanges UI;
     private ClientComm comm;
     private byte[] terrainMap;
+    //If a town menu is up, I need to know what mapID the menu is for
+    // (because clicking on one of it's buttons will create a new mapIdClicked)
     private int mapIdManipulated;
     private Player player;
     private boolean gameOn;
@@ -34,6 +36,7 @@ public class UIbackend implements AsyncResultHandler{
     public UIbackend(Context context, String myName, boolean isSpectator, DisplaysChanges ui){
         player = new InactivePlayer(myName, context);
         spectator = isSpectator;
+        gameOn = true;
         UI = ui;
         comm = new ClientComm(context);
         towns = new SparseArray<>();
@@ -109,6 +112,7 @@ public class UIbackend implements AsyncResultHandler{
             towns.put(mapID, town);
     }
 
+    //it's possible that the hostile town's owner wont be set before the first player becomes active, but its ok since its still marked as hostile
     private void setTownOwnership(JSONArray townArray){
         if(townArray == null)
             return;
@@ -153,7 +157,7 @@ public class UIbackend implements AsyncResultHandler{
         comm.serverPostRequest("getPlayers.php", nameArray, new VolleyCallback<JSONArray>() {
             @Override
             public void onSuccess(JSONArray result) {
-                //here is where I'll set towns to their proper owners, since it tells me who is player 1 or 2
+                Log.d("getPlayers", result.toString());
             }
         });
     }
@@ -191,6 +195,7 @@ public class UIbackend implements AsyncResultHandler{
         if(!playerIsActive()) {
             player = new ActivePlayer(player, towns);
         }
+        UI.makeToast("It is your turn");
         UI.setInfoBar("Cash: " + player.getCash());
     }
 
@@ -269,12 +274,11 @@ public class UIbackend implements AsyncResultHandler{
             return;
 
         Unit movingUnit = getMovingUnit(mapIdClicked);
-        Unit enemyUnit = getUnitFromMap(mapIdClicked, false);
 
         if(movingUnit != null && movingUnit.checkIfMoved() && movingUnit.checkIfAttacked())
             UI.makeToast("This unit has no more actions this turn");
         //if a friendly unit was not selected, see if an enemy unit is there and display its stats if so
-        else if(enemyUnit != null) {
+        else if(getUnitFromMap(mapIdClicked, false) != null) {
             //display unit stats
             double[] stats = ((ActivePlayer)player).getUnitStats(mapIdClicked, false);
             UI.setInfoBar("Enemy Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
@@ -290,13 +294,14 @@ public class UIbackend implements AsyncResultHandler{
             mapIdManipulated = mapIdClicked;
             UI.displayTownMenu();
         }
-        //nothing has been selected to move yet
-        else if(player instanceof ActivePlayer && mapIdManipulated < 0){
+        else if(player instanceof ActivePlayer && mapIdManipulated == -1){
+            //nothing has been selected to move yet
             if(movingUnit == null){
-                resetMapIdManipulated();
+//                resetMapIdManipulated();
                 return;
             }
             if(((ActivePlayer)player).getMoveFromMapID() == -1){
+                mapIdManipulated = mapIdClicked;
                 beginMoveOrAttack();
             }
             else{
@@ -306,29 +311,30 @@ public class UIbackend implements AsyncResultHandler{
     }
 
     private void finishMoveOrAttack(Unit movingUnit, int mapIdClicked){
-        resetMapIdManipulated();
-        ((ActivePlayer)player).setMoveFromMapID(-1);
         //TODO, if I'm given the movngUnit, using player to get the movingUnit's mapId seems unnecessary
         int[] largestArea = findLargestArea(movingUnit);
         int moving = ((ActivePlayer)player).getMoveFromMapID();
-        for (int move : largestArea) {
-            int mapID = move;
-            int moveCheck = ((ActivePlayer)player).checkIfUnitOnSpace(move);
+        for (int mapID : largestArea) {
+            int moveCheck = ((ActivePlayer)player).checkIfUnitOnSpace(mapID);
             int unitID = 0;
+            Unit unit;
             boolean friendly = true;
             switch(moveCheck){
                 case 0: //"no move"
-                    if(getUnitFromMap(move, true) != null) {
-                        Unit u = getUnitFromMap(move, true);
-                        if(u == null)
-                            return;
-                        unitID = u.getUnitID();
+                    unit = getUnitFromMap(mapID, true);
+                    if(unit != null) {
+                        unitID = unit.getUnitID();
+                        friendly = true;
                     }
                     break;
                 case 1: //"canMoveTerrain"
-                    if(move == mapIdClicked && !movingUnit.checkIfMoved()){
+                    if(mapID == mapIdClicked && !movingUnit.checkIfMoved()){
                         sendMove(mapIdClicked, moving);
+                        //clears the old terrain
+                        UI.displayForeground(moving, unitID, true, false);
                         //set the new foreground. It's friendly because I can't move an unfriendly unit
+                        ((ActivePlayer)player).moveUnit(moving, mapID);
+
                         mapID = movingUnit.getMapID();
                         unitID = movingUnit.getUnitID();
                         //display cash
@@ -337,20 +343,22 @@ public class UIbackend implements AsyncResultHandler{
                     break;
                 case 2: //"canMoveEnemy"
                     //un-highlight enemy unit
-                    Unit u = getUnitFromMap(move, false);
-                    if(u == null)
-                        return;
-                    unitID = u.getUnitID();
-                    friendly = false;
-                    //after its un-highlighted, do combat
-                    // (I un-highlight first in case the attack is out of range)
-                    if (move == mapIdClicked && !movingUnit.checkIfAttacked()) {
-                        UIAttack(movingUnit, player.getEnemyUnit(move));
+                    unit = getUnitFromMap(mapID, false);
+                    if(unit != null) {
+                        unitID = unit.getUnitID();
+                        friendly = false;
+                        //after its un-highlighted, do combat
+                        // (I un-highlight first in case the attack is out of range)
+                        if (mapID == mapIdClicked && !movingUnit.checkIfAttacked()) {
+                            UIAttack(movingUnit, player.getEnemyUnit(mapID));
+                        }
                     }
                     break;
             }
             UI.displayForeground(mapID, unitID, friendly, false);
         }
+        ((ActivePlayer)player).setMoveFromMapID(-1);
+//        resetMapIdManipulated();
     }
 
     private void sendMove(int newID, int oldID){
@@ -392,7 +400,6 @@ public class UIbackend implements AsyncResultHandler{
         //display unit stats
         double[] stats = ((ActivePlayer)player).getUnitStats(mapIdManipulated, true);
         UI.setInfoBar("Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
-        //close menu
         resetMapIdManipulated();
     }
 
@@ -460,7 +467,7 @@ public class UIbackend implements AsyncResultHandler{
         else
             activePlayer = player.getEnemyName();
 
-        if(activePlayer.equals("null"))
+        if(activePlayer.equals("hostile"))
             UI.setEndText("Need additional player to start game");
         else if(activePlayer.equals(player.getName())){
             //now all I have to do is display the changes
@@ -473,7 +480,6 @@ public class UIbackend implements AsyncResultHandler{
             UI.setEndText(activePlayer + " is currently playing");
         else
             UI.setEndText("It is " + activePlayer + "'s turn.");
-
     }
 
     private void displayPollResult(){

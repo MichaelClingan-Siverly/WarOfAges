@@ -100,11 +100,9 @@ public class Menu extends AppCompatActivity {
             Log.d("MenuUserID", e.getLocalizedMessage());
         }
         nameArray.put(nameObject);
-        Log.d("nameArray", nameArray.toString());
         comm.serverPostRequest("logout.php", nameArray, new VolleyCallback<JSONArray>() {
             @Override
             public void onSuccess(JSONArray result) {
-                Log.d("logout result", result.toString());
                 //sends user back to the login page.
                 try {
                     if (result.getJSONObject(0).getString("code").equals("Game_over")) {
@@ -124,7 +122,6 @@ public class Menu extends AppCompatActivity {
 
             }
         });
-        Log.d("logout sent", "expect the result soon");
     }
     //Forces a logout if the user swipes the app closed
     @Override

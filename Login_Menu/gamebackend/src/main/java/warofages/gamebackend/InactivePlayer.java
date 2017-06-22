@@ -2,10 +2,15 @@ package warofages.gamebackend;
 
 import android.content.Context;
 import android.util.Log;
+import android.util.SparseArray;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.TreeSet;
 
 import coms309.mike.units.Archer;
 import coms309.mike.units.Cavalry;
@@ -114,6 +119,11 @@ class InactivePlayer extends Player{
         catch(JSONException e) {
             Log.d("converting response", "contained more than one user: " + e.getLocalizedMessage());
         }
+        if(checkForMyArmy)
+            myUnits = new SparseArray<>();
+        else
+            enemyUnits = new SparseArray<>();
+
         try{
             //server's returned array looks like: [{"userID":activePlayer},[{unit1 stuff},{unit2 stuff}, ...]]
             for(int i = 0; i < numUnitsInJSON; i++) {
