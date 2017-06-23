@@ -17,8 +17,17 @@ if(mysqli_num_rows($result)>0){
 else{
 	array_push($response,array('userID'=>"null"));
 }
-$d = array();
+$towns = array();
+$sql = "SELECT GridID, Owner from AdminMap WHERE Owner IS NOT NULL";
+$result = mysqli_query($con,$sql);
+if(mysqli_num_rows($result)>0){
+    foreach($result as $row){
+        $towns[] = $row;
+    }
+    array_push($response, $towns);
+}
 
+$d = array();
 //there was a previous if-statement here, but it caused problems when only one player has joined the game
 $sql = "select * from UnitMap";
 $result = mysqli_query($con,$sql);

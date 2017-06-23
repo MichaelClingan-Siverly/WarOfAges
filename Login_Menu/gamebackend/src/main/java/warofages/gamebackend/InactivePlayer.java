@@ -30,12 +30,15 @@ class InactivePlayer extends Player{
     //I only have one inactive player at a time. NOTE: I did not make this a singleton, so that is not enforced in this class.
     private JSONArray playerAndUnits;
     private PollServerTask poll;
-    private boolean isSpectator = false;
+    //if its determined that I'm a spectator, I keep track of which player to treat as friendly, so
+    // if one player ever has no units they won't be switched in the future
+    private String spectatorWatchPlayer = "";
 
     InactivePlayer(String myName, Context context){
         //First thing: construct the superclass. Could not make the 1000 a final variable, but it's starting cash
         super(context, myName);
         setCash(STARTING_CASH);
+        activateUnits();
     }
 
     InactivePlayer(Player oldPlayer){
@@ -43,6 +46,7 @@ class InactivePlayer extends Player{
         this.enemyUnits = oldPlayer.enemyUnits;
         this.myUnits = oldPlayer.myUnits;
         setCash(oldPlayer.getCash());
+        activateUnits();
     }
     //not in constructors because it seems a bit much to hold the whole backend when not really needed
     void waitForTurn(AsyncResultHandler backend) {
@@ -61,8 +65,12 @@ class InactivePlayer extends Player{
         poll.cancel(true);
     }
 
-    public boolean isSpectator(){
-        return isSpectator;
+    //moved this from ActivePlayer, because an active player rejoining a game would have their units
+    // wrongly activated. So now the booleans reset at the end of a turn instead of the beginning
+    private void activateUnits(){
+        for(int i = 0; i < myUnits.size(); i++){
+            myUnits.valueAt(i).resetMovedAndAttacked();
+        }
     }
 
     /*
@@ -81,12 +89,21 @@ class InactivePlayer extends Player{
             else if(!enemyUnits.get(i).getOwner().equals(nameOne)){
                 //I don't return here because it also separates armies if I am a spectator.
                 //no need to possibly iterate through n-1 units to separate them later
-                isSpectator = true;
+                spectatorWatchPlayer = enemyUnits.get(i).getOwner();
                 int mapID = enemyUnits.get(i).getMapID();
                 int unitID = enemyUnits.get(i).getUnitID();
                 double unitHealth = enemyUnits.get(i).getHealth();
-                addUnit(myName, mapID, unitID, unitHealth);
-//                myUnits.add(enemyUnits.get(i));
+                int moved;
+                if(enemyUnits.get(i).checkIfMoved())
+                    moved = 1;
+                else
+                    moved = 0;
+                int attacked;
+                if(enemyUnits.get(i).checkIfAttacked())
+                    attacked = 1;
+                else
+                    attacked = 0;
+                addUnit(myName, mapID, unitID, unitHealth, moved, attacked);
                 enemyUnits.remove(i);
                 i--;
             }
@@ -109,38 +126,35 @@ class InactivePlayer extends Player{
 
     /**
      * converts the private JSONArray into ArrayLists of Units
-     * @param checkForMyArmy use true if you want my army, false if enemy army
      */
-    private void convertArmyFromJSON(boolean checkForMyArmy){
+    private void convertArmyFromJSON(){
         int numUnitsInJSON = 0;
+        myUnits = new SparseArray<>();
+        enemyUnits = new SparseArray<>();
+
         try {
             numUnitsInJSON = playerAndUnits.getJSONArray(1).length();
         }
         catch(JSONException e) {
             Log.d("converting response", "contained more than one user: " + e.getLocalizedMessage());
         }
-        if(checkForMyArmy)
-            myUnits = new SparseArray<>();
-        else
-            enemyUnits = new SparseArray<>();
 
         try{
             //server's returned array looks like: [{"userID":activePlayer},[{unit1 stuff},{unit2 stuff}, ...]]
             for(int i = 0; i < numUnitsInJSON; i++) {
                 JSONArray jsonUnitArray = playerAndUnits.getJSONArray(1);
-                boolean thisIsMine = jsonUnitArray.getJSONObject(i).get("userID").equals(myName);
-                if (checkForMyArmy && thisIsMine || !checkForMyArmy && !thisIsMine) {
-                    int mapID = jsonUnitArray.getJSONObject(i).getInt("GridID");
-                    int unitID = jsonUnitArray.getJSONObject(i).getInt("UnitID");
-                    String owner = jsonUnitArray.getJSONObject(i).getString("userID");
-                    double unitHealth = jsonUnitArray.getJSONObject(i).getDouble("health");
-                    //easy way of indicating that polling needs to continue.
-                    //server replied to my request before its DB was updated.
-                    if(owner.equals("null")){
-                        playerAndUnits.getJSONObject(0).put("userID", "null");
-                    }
-                    addUnit(owner, mapID, unitID, unitHealth);
+                int mapID = jsonUnitArray.getJSONObject(i).getInt("GridID");
+                int unitID = jsonUnitArray.getJSONObject(i).getInt("UnitID");
+                int moved = jsonUnitArray.getJSONObject(i).getInt("moved");
+                int attacked = jsonUnitArray.getJSONObject(i).getInt("attacked");
+                String owner = jsonUnitArray.getJSONObject(i).getString("userID");
+                double unitHealth = jsonUnitArray.getJSONObject(i).getDouble("health");
+                //easy way of indicating that polling needs to continue.
+                //server replied to my request before its DB was updated.
+                if(owner.equals("friendly") || owner.equals("hostile")){
+                    playerAndUnits.getJSONObject(0).put("userID", "null");
                 }
+                addUnit(owner, mapID, unitID, unitHealth, moved, attacked);
             }
         }
         catch(JSONException e){
@@ -156,8 +170,7 @@ class InactivePlayer extends Player{
      */
     public boolean receiveNewJSON(JSONArray jsonArray){
         playerAndUnits = jsonArray;
-        convertArmyFromJSON(true);
-        convertArmyFromJSON(false);
+        convertArmyFromJSON();
         //units update everytime a poll is answered
         checkIfSpectator();
 
@@ -176,7 +189,7 @@ class InactivePlayer extends Player{
         return false;
     }
 
-    private void addUnit(String owner, int mapID, int unitID, double unitHealth){
+    private void addUnit(String owner, int mapID, int unitID, double unitHealth, int moved, int attacked){
         Unit unit;
         switch(unitID){
             case 1:
@@ -199,7 +212,12 @@ class InactivePlayer extends Player{
                 break;
         }
         if(unit != null){
-            if(owner.equals(myName))
+            if(moved == 1)
+                unit.moveUnit(mapID);
+            if(attacked == 1)
+                unit.setHasAttacked();
+
+            if(owner.equals(myName) || owner.equals(spectatorWatchPlayer))
                 myUnits.put(mapID, unit);
             else
                 enemyUnits.put(mapID, unit);

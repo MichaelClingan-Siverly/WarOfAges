@@ -7,11 +7,11 @@ package coms309.mike.units;
 public class General extends Unit {
 
     public General(int mapID, String ownerID, double health){
-        super(mapID, 5, ownerID, 5, health, 125, 0.8);
+        super(mapID, 5, ownerID, 4, health, 125, 0.8);
     }
 
     public General(int mapID, String owner){
-        super(mapID, 5, owner, 5, 2000.0, 125, .8);
+        super(mapID, 5, owner, 4, 2000.0, 125, .8);
     }
 
     public double getMovementCost(byte terID){

@@ -25,7 +25,6 @@ public class ActivePlayer extends Player {
         super(context, myName);
         setCash(STARTING_CASH);
         incrementCash(getNumOfMyTowns(towns));
-        activateUnits();
     }
 
     public ActivePlayer(Player oldPlayer, SparseArray<Town> towns){
@@ -34,7 +33,6 @@ public class ActivePlayer extends Player {
         this.myUnits = oldPlayer.myUnits;
         setCash(oldPlayer.getCash());
         incrementCash(getNumOfMyTowns(towns));
-        activateUnits();
     }
 
     private void incrementCash(int numOfMyTowns){
@@ -51,12 +49,6 @@ public class ActivePlayer extends Player {
                 numTowns++;
         }
         return numTowns;
-    }
-
-    private void activateUnits(){
-        for(int i = 0; i < myUnits.size(); i++){
-            myUnits.valueAt(i).resetMovedAndAttacked();
-        }
     }
 
     public double[] getUnitStats(int unitMapID, boolean friendly){
@@ -131,9 +123,7 @@ public class ActivePlayer extends Player {
         else
             return "Keep Fighting";
     }
-
-    //TODO like with UIAttack, pretty much just copy/paste of the UI version
-
+    
     /**
      * creates the unit
      * @param mapID place on the map where unit is to be placed upon creation

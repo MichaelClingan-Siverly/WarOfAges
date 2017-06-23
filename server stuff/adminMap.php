@@ -59,6 +59,9 @@ if(mysqli_num_rows($result)>0){
             case "water":
                 $listing .="8:";
                 break;
+            case "impassable_mountain":
+                $listing .= "9:";
+                break;
         }
     }
     //gets rid of the extra delimiter colon at the end of the string
@@ -70,9 +73,9 @@ if(mysqli_num_rows($result)>0){
     $sql = "SELECT * FROM UnitMap";
     $result = mysqli_query($con,$sql);
     if(mysqli_num_rows($result)==0){
-        $sql = "INSERT INTO UnitMap VALUES (".$p1Start.", 5, 2000, NULL)";
+        $sql = "INSERT INTO UnitMap VALUES ('".$p1Start."', 5, 2000, false, false, 'friendly')";
         mysqli_query($con,$sql);
-        $sql = "INSERT INTO UnitMap VALUES (".$p2Start.", 5, 2000, NULL)";
+        $sql = "INSERT INTO UnitMap VALUES ('".$p2Start."', 5, 2000, false, false, 'hostile')";
         mysqli_query($con,$sql);
     }
     

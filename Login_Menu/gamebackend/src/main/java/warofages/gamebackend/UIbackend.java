@@ -275,13 +275,16 @@ public class UIbackend implements AsyncResultHandler{
 
         Unit movingUnit = getMovingUnit(mapIdClicked);
 
-        if(movingUnit != null && movingUnit.checkIfMoved() && movingUnit.checkIfAttacked())
+        if(movingUnit != null && movingUnit.checkIfMoved() && movingUnit.checkIfAttacked()) {
             UI.makeToast("This unit has no more actions this turn");
+            return;
+        }
         //if a friendly unit was not selected, see if an enemy unit is there and display its stats if so
         else if(getUnitFromMap(mapIdClicked, false) != null) {
             //display unit stats
             double[] stats = ((ActivePlayer)player).getUnitStats(mapIdClicked, false);
             UI.setInfoBar("Enemy Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
+            return;
         }
         //if there was no friendly or enemy unit there, display cash instead
         else
@@ -297,7 +300,6 @@ public class UIbackend implements AsyncResultHandler{
         else if(player instanceof ActivePlayer && mapIdManipulated == -1){
             //nothing has been selected to move yet
             if(movingUnit == null){
-//                resetMapIdManipulated();
                 return;
             }
             if(((ActivePlayer)player).getMoveFromMapID() == -1){
@@ -389,7 +391,8 @@ public class UIbackend implements AsyncResultHandler{
 
     public void beginMoveOrAttack(){
         Unit movingUnit = getUnitFromMap(mapIdManipulated, true);
-        if(movingUnit == null){
+        //I check before calling this, but its a second check - maybe something else will call it eventually
+        if(movingUnit == null || (movingUnit.checkIfAttacked() && movingUnit.checkIfMoved())){
             resetMapIdManipulated();
             return;
         }
@@ -538,23 +541,19 @@ public class UIbackend implements AsyncResultHandler{
 
     private void sendAttack(int myUnitMapID, double myUnitHealth, int enemyUnitMapID, double enemyUnitHealth) {
         JSONArray jsonhealth = new JSONArray();
-        JSONObject myObjectID = new JSONObject();
-        JSONObject myObjectHealth = new JSONObject();
-        JSONObject enemyObjectID = new JSONObject();
-        JSONObject enemyObjectHealth = new JSONObject();
+        JSONObject myUnit = new JSONObject();
+        JSONObject enemyUnit = new JSONObject();
         try {
-            myObjectID.put("myUnitID", myUnitMapID);
-            myObjectHealth.put("myUnitHealth", myUnitHealth);
-            enemyObjectID.put("enemyUnitID", enemyUnitMapID);
-            enemyObjectHealth.put("enemyUnitHealth", enemyUnitHealth);
+            myUnit.put("myGridID", myUnitMapID);
+            myUnit.put("myUnitHealth", myUnitHealth);
+            enemyUnit.put("enemyGridID", enemyUnitMapID);
+            enemyUnit.put("enemyUnitHealth", enemyUnitHealth);
 
         } catch (JSONException e) {
             Log.d("formAttackJSON", e.getLocalizedMessage());
         }
-        jsonhealth.put(myObjectID);
-        jsonhealth.put(myObjectHealth);
-        jsonhealth.put(enemyObjectID);
-        jsonhealth.put(enemyObjectHealth);
+        jsonhealth.put(myUnit);
+        jsonhealth.put(enemyUnit);
         comm.serverPostRequest("attack.php", jsonhealth, new VolleyCallback<JSONArray>() {
             @Override
             public void onSuccess(JSONArray result) {

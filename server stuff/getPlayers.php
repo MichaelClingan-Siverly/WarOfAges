@@ -16,7 +16,7 @@ $userID = $decoded[0]['userID'];
 $response = array();
 
 //query DB if that user exists and is logged in
-$sql = "select userID from users where userID like '".$userID."' AND loggedin = 1;";
+$sql = "select userID from users where userID = '".$userID."' AND loggedin = 1;";
 $result = mysqli_query($con,$sql);
 
 //if the query's number of rows is greater than 0
@@ -29,28 +29,41 @@ if(mysqli_num_rows($result)>0){
         $check_result2 = mysqli_fetch_array($result_2)[0];
         if(mysqli_num_rows($result) == 0 || strcmp($check_result, $userID) == 0){
                 //player one not logged in
-                $sql = "UPDATE users SET player = 0, playerOrder = 1 WHERE userID like '".$userID."'";
+                $sql = "UPDATE users SET player = 0, playerOrder = 1 WHERE userID = '".$userID."'";
                 mysqli_query($con,$sql);
-                $sql = "UPDATE UnitMap SET userID = '".$userID."' WHERE GridID in (SELECT GridID FROM AdminMap WHERE AreaType = 'town_friendly_start')";
-                mysqli_query($con,$sql);
+                //if player 1 left the game, then player 2 is already assigned. Check if player 2 is active, and if not that means this needs to be active
+                if(mysqli_num_rows($result_2) == 1){
+                    $sql = "UPDATE users SET player = 1 WHERE userID = '".$userID."'";
+                    mysqli_query($con,$sql);
+                }
+                else{
+                    $sql = "UPDATE UnitMap SET userID = '".$userID."' WHERE userID = 'friendly'";
+                    mysqli_query($con,$sql);
+                    $sql = "UPDATE AdminMap SET Owner = '".$userID."' WHERE (AreaType = 'town_friendly_start' AND Owner = '') OR Owner = 'friendly'";
+                    mysqli_query($con,$sql);
+                }
                 $code = "player 1 assigned";
-}
+        }
         else if(mysqli_num_rows($result_2) == 0 || strcmp($check_result2, $userID) == 0){
                 //player two not logged in
-                $sql = "UPDATE users SET player = 1, playerOrder = 2 WHERE loggedIn = 1 AND userID like '".$userID."'";
-                $result = mysqli_query($con,$sql);
-                //I'm not sure where the end of the map is, so I just check for any unit other than at gridID 0
-                $sql = "UPDATE UnitMap SET userID = '".$userID."' WHERE GridID in (SELECT GridID FROM AdminMap WHERE AreaType = 'town_hostile_start')";
-                $result = mysqli_query($con,$sql);
+                $sql = "UPDATE users SET playerOrder = 2 WHERE loggedIn = 1 AND userID = '".$userID."'";
+                mysqli_query($con,$sql);
+                //previously set player two to be first active player.
+                $sql = "UPDATE users SET player = 1 WHERE playerOrder = 1";
+                mysqli_query($con,$sql);
+                $sql = "UPDATE UnitMap SET userID = '".$userID."' WHERE userID = 'hostile'";
+                mysqli_query($con,$sql);
+                $sql = "UPDATE AdminMap SET Owner = '".$userID."' WHERE (AreaType = 'town_hostile_start' AND Owner = '') OR Owner = 'hostile'";
+                mysqli_query($con,$sql);
                 $code = "player 2 assigned";
         }
         else{
                 //sucks to be that player. can't have more than two players.
-                $code = "player not assigned";
+                $code = "no more players can be assigned";
         }
 }
 else{
-        $code = "player_not_found";
+        $code = "player not found";
 }
 array_push($response, array("code"=>$code));
 echo json_encode($response);

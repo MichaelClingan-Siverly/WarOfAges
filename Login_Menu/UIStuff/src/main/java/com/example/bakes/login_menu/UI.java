@@ -215,6 +215,9 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
             case 8:
                 picName = "tile_water";
                 break;
+            case 9:
+                picName = "tile_impassible";
+                break;
         }
         //gets and sets reference for picture ID. "p12" would indicate something went wrong
         int resID = getResources().getIdentifier(picName.equals("") ? "p12" : picName, "drawable", getPackageName());
