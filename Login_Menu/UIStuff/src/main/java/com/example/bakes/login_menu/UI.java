@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
@@ -27,7 +28,8 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
     boolean movedToOtherIntent = false;
 
     private UIbackend uiBackend;
-    private final int MOVE_ICON_ID = 10000;
+    private final int BASE_TOWN_ICON = 10000;
+    private int numTownIcons = 0;
 
     //The number of squares in the map. Used so often that I save the value in here
     private int mapSize;
@@ -96,17 +98,23 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
     //initialize townMenu window
     private void makeTownMenu(){
         townMenu = new PopupWindow(this);
-        LinearLayout popLayout = new LinearLayout(this);
+        GridLayout popLayout = new GridLayout(this);
+
         ImageView image;
-        ViewGroup.LayoutParams layoutParams = new LinearLayout.LayoutParams(150, 150);
+        ViewGroup.LayoutParams layoutParams = new LinearLayout.LayoutParams(125, 125);
         ArrayList<Integer> icons = findTownMenuIDs();
 
         for(int i = 0; i < icons.size(); i++){
+            if(i % 5 == 0){
+                LinearLayout row = new LinearLayout(this);
+                popLayout.addView(row);
+            }
             image = new ImageView(this);
             image.setImageResource(icons.get(i));
-            image.setId(MOVE_ICON_ID + i);
+            image.setId(BASE_TOWN_ICON + i);
             image.setOnClickListener(townMenuListener);
             popLayout.addView(image, layoutParams);
+            numTownIcons++;
         }
         townMenu.setContentView(popLayout);
         //The menu didn't show up on mobile devices (worked on emulator though). fixed by http://stackoverflow.com/a/39363218
@@ -117,7 +125,6 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
 
     private ArrayList<Integer> findTownMenuIDs(){
         ArrayList<Integer> unitIDs = new ArrayList<>();
-        unitIDs.add(R.drawable.move_icon);
         Field[] fields = R.drawable.class.getFields();
         for(Field field : fields){
             if(field.getName().startsWith("unit") && field.getName().endsWith("friendly")){
@@ -296,13 +303,10 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
     View.OnClickListener townMenuListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            //clicked on move button
-            if (v.getId() == MOVE_ICON_ID)
-                uiBackend.beginMoveOrAttack();
             //clicked on one of the add unit buttons
-            //TODO eventually towns will be able to recruit without a friendly unit on it. Will need to be able to open a town menu without a unit on it
-            else if (v.getId() > MOVE_ICON_ID) {
-                int unitIDtoAdd = v.getId() - MOVE_ICON_ID;
+            int id = v.getId();
+            if (id >= BASE_TOWN_ICON && v.getId() < BASE_TOWN_ICON+numTownIcons) {
+                int unitIDtoAdd = v.getId() - BASE_TOWN_ICON + 1;
                 uiBackend.recruitFromTownMenu(unitIDtoAdd);
             }
             /*  if user didn't click on move or unit icons, they must have pressed the map or

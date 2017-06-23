@@ -51,12 +51,7 @@ public class ActivePlayer extends Player {
         return numTowns;
     }
 
-    public double[] getUnitStats(int unitMapID, boolean friendly){
-        if(friendly)
-            return myUnits.get(unitMapID).getMyStats();
-        else
-            return enemyUnits.get(unitMapID).getMyStats();
-    }
+
 
     public void setMoveFromMapID(int unitsMapID){
         if(unitsMapID != -1 && moving==-1 && getFriendlyUnit(unitsMapID) != null)
@@ -123,15 +118,15 @@ public class ActivePlayer extends Player {
         else
             return "Keep Fighting";
     }
-    
+
     /**
      * creates the unit
      * @param mapID place on the map where unit is to be placed upon creation
      * @param unitID determines which unit is to be created:
      *               1-archer, 2-cavalry, 3-swordsman, 4-spearman, 5-general
-     * @return array of Objects: index 0 is a message, index 1 is the units health if one was created
+     * @return array of Objects: message indicating if the unit was created
      */
-    public Object[] createUnit(int mapID, int unitID){
+    public String createUnit(int mapID, int unitID){
         Unit newUnit;
         String message;
         switch(unitID){
@@ -156,7 +151,7 @@ public class ActivePlayer extends Player {
                 message = "General";
                 break;
             default:
-                return new Object[]{"This kind of unit does not exist."};
+                return "This kind of unit does not exist.";
         }
         if(cash >= newUnit.getCostToRecruit()) {
             cash -= newUnit.getCostToRecruit();
@@ -166,10 +161,10 @@ public class ActivePlayer extends Player {
             //ensure the new unit doesn't attack (cant attack on turn it was created)
             newUnit.setHasAttacked();
             myUnits.put(mapID, newUnit);
-            return new Object[]{message, newUnit.getHealth()};
+            return message;
         }
         else{
-            return new Object[]{"You do not have enough cash."};
+            return "You do not have enough cash.";
         }
     }
 }

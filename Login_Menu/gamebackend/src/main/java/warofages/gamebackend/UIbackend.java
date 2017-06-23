@@ -242,27 +242,31 @@ public class UIbackend implements AsyncResultHandler{
     //TODO I want to be able to recruit only on a town - should be a lot easier than this
     public void recruitFromTownMenu(int unitIdToAdd){
         Unit movingUnit = getUnitFromMap(mapIdManipulated, true);
-        if(movingUnit != null && !movingUnit.checkIfMoved()){
-            //take all surrounding tiles and add unit to first empty one
-            int[] moves = new terrainCalculations(terrainMap, UI.getTileSize()).checkSurroundingTerrain(movingUnit, player, false);
-            for (int move : moves) {
-                if (move > -1 && move < terrainMap.length && ((ActivePlayer)player).checkIfUnitOnSpace(move) == 1
-                        && getTerrainAtLocation(move) != 6
-                        && !(unitIdToAdd == 5 && getTerrainAtLocation(move) == 4)
-                        && !(unitIdToAdd == 2 && getTerrainAtLocation(move) == 4)) {
-                    //creates unit and sends it to server
-                    createUnit(move, unitIdToAdd);
-                    // don't actually move the unit, but dont let it move anymore
-                    movingUnit.moveUnit(movingUnit.getMapID());
-                    //close popup
-                    resetMapIdManipulated();
-                    return;
-                }
-            }
+        if(movingUnit == null){
+            //creates unit and sends it to server
+            createUnit(mapIdManipulated, unitIdToAdd);
+            //close popup
+            resetMapIdManipulated();
+            return;
         }
-        //no empty space found to recruit on or recruiting unit has already moved
         resetMapIdManipulated();
-        UI.makeToast("no space found to recruit unit");
+        UI.makeToast("There is already a unit on the town");
+    }
+
+    private void displayStats(int mapID){
+        //if a friendly unit was not selected, see if an enemy unit is there and display its stats if so
+        if(getUnitFromMap(mapID, false) != null) {
+            //display unit stats
+            double[] stats = player.getUnitStats(mapID, terrainMap[mapID], false);
+            UI.setInfoBar("Enemy Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2] * 100 + "%");
+        }
+        else if(getUnitFromMap(mapID, true) != null){
+            double[] stats = player.getUnitStats(mapID, terrainMap[mapID], true);
+            UI.setInfoBar("Unit Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2] * 100 + "%");
+        }
+        //if there was no friendly or enemy unit there, display cash instead
+        else
+            UI.setInfoBar("Cash: " + player.getCash());
     }
 
     public void helpWithMapClicks(int mapIdClicked){
@@ -270,34 +274,27 @@ public class UIbackend implements AsyncResultHandler{
             UI.setInfoBar(checkIfGameOver());
             return;
         }
-        else if(!playerIsActive())
-            return;
+        displayStats(mapIdClicked);
 
         Unit movingUnit = getMovingUnit(mapIdClicked);
 
-        if(movingUnit != null && movingUnit.checkIfMoved() && movingUnit.checkIfAttacked()) {
+        if(!playerIsActive())
+            return;
+        else if(movingUnit != null && movingUnit.checkIfMoved() && movingUnit.checkIfAttacked()) {
             UI.makeToast("This unit has no more actions this turn");
             return;
         }
-        //if a friendly unit was not selected, see if an enemy unit is there and display its stats if so
-        else if(getUnitFromMap(mapIdClicked, false) != null) {
-            //display unit stats
-            double[] stats = ((ActivePlayer)player).getUnitStats(mapIdClicked, false);
-            UI.setInfoBar("Enemy Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
-            return;
-        }
-        //if there was no friendly or enemy unit there, display cash instead
-        else
-            UI.setInfoBar("Cash: " + player.getCash());
 
-        //if friendly unit on a town and you click it, open town menu
-        if(movingUnit != null && mapIdClicked >= 0 && mapIdClicked < terrainMap.length &&
-                getTerrainAtLocation(mapIdClicked) == 5 && mapIdManipulated == -1
-                && ((ActivePlayer)player).getMoveFromMapID() == -1) {
+        //TODO this is a lot of stuff. Try cleaning it up some
+        //if player is active, clicked on a town, and no unit is on it
+        if(movingUnit == null && getUnitFromMap(mapIdClicked, false) == null &&
+                getUnitFromMap(mapIdClicked, true) == null && getTerrainAtLocation(mapIdClicked) == 5 &&
+                mapIdManipulated == -1 && ((ActivePlayer)player).getMoveFromMapID() == -1 &&
+                towns.get(mapIdClicked) != null && towns.get(mapIdClicked).getOwner().equals(player.getName())) {
             mapIdManipulated = mapIdClicked;
             UI.displayTownMenu();
         }
-        else if(player instanceof ActivePlayer && mapIdManipulated == -1){
+        else if(playerIsActive() && mapIdManipulated == -1){
             //nothing has been selected to move yet
             if(movingUnit == null){
                 return;
@@ -352,7 +349,7 @@ public class UIbackend implements AsyncResultHandler{
                         //after its un-highlighted, do combat
                         // (I un-highlight first in case the attack is out of range)
                         if (mapID == mapIdClicked && !movingUnit.checkIfAttacked()) {
-                            UIAttack(movingUnit, player.getEnemyUnit(mapID));
+                            UIAttack(movingUnit, getUnitFromMap(mapID, false));
                         }
                     }
                     break;
@@ -360,7 +357,6 @@ public class UIbackend implements AsyncResultHandler{
             UI.displayForeground(mapID, unitID, friendly, false);
         }
         ((ActivePlayer)player).setMoveFromMapID(-1);
-//        resetMapIdManipulated();
     }
 
     private void sendMove(int newID, int oldID){
@@ -401,8 +397,8 @@ public class UIbackend implements AsyncResultHandler{
         //current location of unit in the terrain map
         ((ActivePlayer)player).setMoveFromMapID(mapIdManipulated);
         //display unit stats
-        double[] stats = ((ActivePlayer)player).getUnitStats(mapIdManipulated, true);
-        UI.setInfoBar("Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2]);
+        double[] stats = player.getUnitStats(mapIdManipulated, terrainMap[mapIdManipulated], true);
+        UI.setInfoBar("Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + stats[2] * 100 + "%");
         resetMapIdManipulated();
     }
 
@@ -563,9 +559,10 @@ public class UIbackend implements AsyncResultHandler{
     }
 
     private void createUnit(int mapID, int unitID){
-        final Object[] stuff= ((ActivePlayer)player).createUnit(mapID, unitID);
-        UI.makeToast((String)stuff[0]);
-        if(stuff.length > 1){
+        final String message = ((ActivePlayer)player).createUnit(mapID, unitID);
+        UI.makeToast(message);
+        if(message.endsWith("recruited.")){
+            double health = getUnitFromMap(mapID, true).getHealth();
             //set unit image
             UI.displayForeground(mapID, unitID, true, false);
 
@@ -578,7 +575,7 @@ public class UIbackend implements AsyncResultHandler{
                 nameObject.put("userID", player.getName());
                 gridObject.put("GridID", mapID);
                 unitObject.put("UnitID", unitID);
-                unitHealth.put("health", (double)stuff[1]);
+                unitHealth.put("health", health);
             } catch (JSONException e) {
                 //TODO
             }

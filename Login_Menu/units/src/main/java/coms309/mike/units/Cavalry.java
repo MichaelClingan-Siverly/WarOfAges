@@ -37,7 +37,7 @@ public class Cavalry extends Unit {
     }
 
     @Override
-    protected double calculateDefenseAfterTerrain(byte terrain) {
+    public double calculateDefenseAfterTerrain(byte terrain) {
         double modifiedDefense;
         switch (terrain) {
             case 1:

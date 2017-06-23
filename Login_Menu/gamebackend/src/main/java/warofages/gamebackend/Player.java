@@ -73,6 +73,13 @@ public abstract class Player {
             return enemyUnits.size() == 0;
     }
 
+    public double[] getUnitStats(int unitMapID, byte terID, boolean friendly){
+        if(friendly)
+            return myUnits.get(unitMapID).getMyStats(terID);
+        else
+            return enemyUnits.get(unitMapID).getMyStats(terID);
+    }
+
     public String getEnemyName(){
         if(!checkIfNoUnits(false)){
             //I know its not empty, so at least index 0 must have a unit in it

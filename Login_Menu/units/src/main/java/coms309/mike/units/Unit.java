@@ -24,7 +24,7 @@ public abstract class Unit {
         this.defense=defense;
     }
 
-    protected double calculateDefenseAfterTerrain(byte terrain){
+    public double calculateDefenseAfterTerrain(byte terrain){
         double modifiedDefense;
         switch(terrain){
             case 1:
@@ -120,8 +120,8 @@ public abstract class Unit {
         hasAttacked = true;
     }
 
-    public double[] getMyStats(){
-        return new double[]{health, attack, defense};
+    public double[] getMyStats(byte terID){
+        return new double[]{health, attack, calculateDefenseAfterTerrain(terID)};
     }
 
     public void resetMovedAndAttacked(){
