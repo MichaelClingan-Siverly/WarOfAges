@@ -30,8 +30,7 @@ class InactivePlayer extends Player{
     //I only have one inactive player at a time. NOTE: I did not make this a singleton, so that is not enforced in this class.
     private JSONArray playerAndUnits;
     private PollServerTask poll;
-    //if its determined that I'm a spectator, I keep track of which player to treat as friendly, so
-    // if one player ever has no units they won't be switched in the future
+    //if player is spectator, this is name of the player whose units and towns are displayed as friendly
     private String spectatorWatchPlayer = "";
 
     InactivePlayer(String myName, Context context){
@@ -48,6 +47,15 @@ class InactivePlayer extends Player{
         setCash(oldPlayer.getCash());
         activateUnits();
     }
+
+    @Override
+    public String getName(){
+        if(spectatorWatchPlayer.equals(""))
+            return myName;
+        else
+            return spectatorWatchPlayer;
+    }
+
     //not in constructors because it seems a bit much to hold the whole backend when not really needed
     void waitForTurn(AsyncResultHandler backend) {
         //initialize the static json array with json objects of units.
@@ -69,7 +77,8 @@ class InactivePlayer extends Player{
     // wrongly activated. So now the booleans reset at the end of a turn instead of the beginning
     private void activateUnits(){
         for(int i = 0; i < myUnits.size(); i++){
-            myUnits.valueAt(i).resetMovedAndAttacked();
+            if(myUnits.valueAt(i) != null)
+                myUnits.valueAt(i).resetMovedAndAttacked();
         }
     }
 
@@ -79,17 +88,18 @@ class InactivePlayer extends Player{
      */
     private void checkIfSpectator(){
         String nameOne = "one";
-        if(!checkIfNoUnits(true)){
+        if(myUnits.size() > 0){
             return;
         }
         for(int i = 0; i < enemyUnits.size(); i++){
             if(i == 0){
-                nameOne = enemyUnits.get(i).getOwner();
+                nameOne = enemyUnits.valueAt(i).getOwner();
             }
-            else if(!enemyUnits.get(i).getOwner().equals(nameOne)){
+            else if(!enemyUnits.valueAt(i).getOwner().equals(nameOne)){
                 //I don't return here because it also separates armies if I am a spectator.
                 //no need to possibly iterate through n-1 units to separate them later
-                spectatorWatchPlayer = enemyUnits.get(i).getOwner();
+                String nameTwo = enemyUnits.get(i).getOwner();
+                spectatorWatchPlayer = nameTwo;
                 int mapID = enemyUnits.get(i).getMapID();
                 int unitID = enemyUnits.get(i).getUnitID();
                 double unitHealth = enemyUnits.get(i).getHealth();
@@ -103,7 +113,7 @@ class InactivePlayer extends Player{
                     attacked = 1;
                 else
                     attacked = 0;
-                addUnit(myName, mapID, unitID, unitHealth, moved, attacked);
+                addUnit(nameTwo, mapID, unitID, unitHealth, moved, attacked);
                 enemyUnits.remove(i);
                 i--;
             }
@@ -150,7 +160,6 @@ class InactivePlayer extends Player{
                 String owner = jsonUnitArray.getJSONObject(i).getString("userID");
                 double unitHealth = jsonUnitArray.getJSONObject(i).getDouble("health");
                 //easy way of indicating that polling needs to continue.
-                //server replied to my request before its DB was updated.
                 if(owner.equals("friendly") || owner.equals("hostile")){
                     playerAndUnits.getJSONObject(0).put("userID", "null");
                 }
@@ -178,7 +187,7 @@ class InactivePlayer extends Player{
             //creates the active player originally attempted in UI after waitForTurn is called.
             //Having it here forces us to wait until I'm actually the active player before I become active
             if (jsonArray.getJSONObject(0).getString("userID").equals(myName)) {
-                killPoll();
+//                killPoll();
                 //let caller know the player may now become active
                 return true;
             }

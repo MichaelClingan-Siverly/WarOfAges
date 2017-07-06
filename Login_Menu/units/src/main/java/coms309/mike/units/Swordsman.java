@@ -7,11 +7,11 @@ package coms309.mike.units;
 public class Swordsman extends Unit {
 
     public Swordsman(int mapID, String ownerID, double health){
-        super(mapID, 3, ownerID, 2, health, 50, 0.5);
+        super(mapID, ownerID, 2, health, 50, 0.5);
     }
 
     public Swordsman(int mapID, String owner){
-        super(mapID, 3, owner, 2, 600.0, 50, .5);
+        super(mapID, owner, 2, 600.0, 50, .5);
     }
 
     @Override
@@ -60,5 +60,9 @@ public class Swordsman extends Unit {
                 modifiedDefense = defense;
         }
         return modifiedDefense;
+    }
+
+    public int getUnitID(){
+        return 3;
     }
 }

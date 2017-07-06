@@ -18,6 +18,7 @@ import org.json.JSONObject;
 
 import coms309.mike.clientcomm.ClientComm;
 import coms309.mike.clientcomm.VolleyCallback;
+import warofages.gamebackend.UIbackend;
 
 
 public class Login extends AppCompatActivity {
@@ -67,7 +68,8 @@ public class Login extends AppCompatActivity {
         button.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                UPtoString();
+                UIbackend backend = new UIbackend(getApplicationContext(), "meh", false, null);
+//                UPtoString();
             }
         });
     }

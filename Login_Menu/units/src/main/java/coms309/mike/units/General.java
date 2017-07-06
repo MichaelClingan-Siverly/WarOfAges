@@ -7,11 +7,11 @@ package coms309.mike.units;
 public class General extends Unit {
 
     public General(int mapID, String ownerID, double health){
-        super(mapID, 5, ownerID, 4, health, 125, 0.8);
+        super(mapID, ownerID, 4, health, 125, 0.8);
     }
 
     public General(int mapID, String owner){
-        super(mapID, 5, owner, 4, 2000.0, 125, .8);
+        super(mapID, owner, 4, 2000.0, 125, .8);
     }
 
     public double getMovementCost(byte terID){
@@ -45,7 +45,7 @@ public class General extends Unit {
                 modifiedDefense = defense - .3;
                 break;
             case 4: //mounted units should not be on a mountain anyway
-                modifiedDefense = .0001;
+                modifiedDefense = .001;
                 break;
             case 5:
             case 6:
@@ -56,5 +56,9 @@ public class General extends Unit {
                 modifiedDefense = defense;
         }
         return modifiedDefense;
+    }
+
+    public int getUnitID(){
+        return 5;
     }
 }

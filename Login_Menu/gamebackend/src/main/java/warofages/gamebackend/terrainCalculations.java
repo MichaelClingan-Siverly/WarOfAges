@@ -18,25 +18,38 @@ import coms309.mike.units.Unit;
  * Created by mike on 6/16/2017.
  */
 class terrainCalculations {
-    private byte[]terrain;
-    private int tileSize;
 
-    terrainCalculations(byte[] terrainMap, int tileSize){
-        terrain = terrainMap;
-        this.tileSize = tileSize;
-    }
-
-    private class Hexagon{
+    class Hexagon{
         int row, col;
         Hexagon(int row, int col){
             this.row = row;
             this.col = col;
         }
     }
+    private class Cube{
+        int x, y, z;
+        Cube(int x, int y, int z){
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+        Cube(){
+            x = 0; y = 0; z = 0;
+        }
+    }
 
+    /**
+     * finds the rows and columns of the hexagons along the path from start to end
+     * @param startMapID mapID of first hexagon along the path
+     * @param endMapID mapID of the target hexagon - where the path will end
+     * @return 2-D int array where [i][0] is the row and [i][1] is the column
+     */
     //If theres a more efficient way to do this (and I'm sure there is), I'd like to know it
-    private Hexagon[] checkLine(int startMapID, int endMapID){
-        int rowLength = (int)Math.sqrt(terrain.length);
+    Hexagon[] checkLine(int startMapID, int endMapID, int mapSize){
+        //actual tileSize doesn't really matter, but I need something for use in the calculations
+        int tileSize = 100;
+        float heightOfHexagon = (float)Math.sqrt(3/2f) * tileSize;
+        int rowLength = (int)Math.sqrt(mapSize);
         int startCol = startMapID / rowLength;
         int startRow = startMapID % rowLength;
         if(startMapID == endMapID)
@@ -44,13 +57,12 @@ class terrainCalculations {
 
         int endCol = endMapID / rowLength;
         int endRow = endMapID % rowLength;
-        float heightOfHexagon = (float)Math.sqrt(3/2f) * tileSize;
 
         //I make the points at the center, hence the half width/height added on each.
         //first column's x = tileSize/2. Each column after that adds 3*tileSize/4
-        float startX = startCol * 3 / 4 *tileSize + tileSize / 2;
-        float endX = endCol * 3 / 4 * tileSize + tileSize / 2;
-        //first row's y = tileSize/2 if x is even or tileSize if x is odd. each row after adds tileSize
+        float startX = startCol * (3 * tileSize / 4) + tileSize / 2;
+        float endX = endCol * (3 * tileSize / 4) + tileSize / 2;
+        //first row's y = hexHeight/2 if x is even or hexHeight if x is odd. each row after adds hexHeight
         float startY = startRow * heightOfHexagon + heightOfHexagon / (2-(startCol&1));
         float endY = endRow * heightOfHexagon + heightOfHexagon / (2-(endCol&1));
 
@@ -62,8 +74,8 @@ class terrainCalculations {
         Hexagon[] path = new Hexagon[numSamples + 1 + (numSamples)/2];
         Hexagon[] nearestHexagons;
         //distance between the samples; add onto the x and y each time to follow the slope of the line
-        float xSampleDist = numSamples / (endX - startX);
-        float ySampleDist = numSamples / (endY - startY);
+        float xSampleDist = (endX - startX) / numSamples;
+        float ySampleDist = (endY - startY) / numSamples;
         float x = startX;
         float y = startY;
         //the first hexagon the line hits is the one where it started
@@ -71,10 +83,10 @@ class terrainCalculations {
 
         //sample variable keeps track of what index in path I insert into.
         // can't use i, since sometimes I make two insertions per point
-        for(int i = 1, sample = 0; i <= numSamples; i++, sample++){
+        for(int i = 1, sample = 1; i <= numSamples; i++, sample++){
             x += xSampleDist;
             y += ySampleDist;
-            nearestHexagons = getNearestHexToPoint(x,y);
+            nearestHexagons = getNearestHexToPoint(x,y, tileSize, heightOfHexagon);
             path[sample] = nearestHexagons[0]; //there will always be at least one nearest hexagon
             //possible to have two nearest ones (point on an edge), happens at most numSamples/2 times
             if(nearestHexagons.length > 1) {
@@ -85,71 +97,76 @@ class terrainCalculations {
         return path;
     }
 
-    private Hexagon[] getNearestHexToPoint(float x, float y){
-        Hexagon[] nearestPoints;
-        final float E = .0005f;
+    //if a point is on an edge between two hexagons, nudges x and y
+    // a bit each way and calls itself to determine both hexagons
+    private Hexagon[] getNearestHexToPoint(float x, float y, int tileSize, float heightOfHexagon){
+        final float E = .00005f;
+        final float nudgeValue = .1f;
         int row;
-        int row2 = -1;
         int col;
-        int col2 = -1;
-        float tentativeCol = 8*x/3*tileSize;
+        //the tentative stuff is the inverse of finding x,y from column, row
+        float tentativeCol = (4*x - 2*tileSize)/(3*tileSize);
+
         //if it's close enough to the edge that I consider it to be on it
-        if(Math.abs(tentativeCol - ((int)tentativeCol + .5f)) <= E) {
-            col = (int)tentativeCol;
-            col2 = col+1;
+        if(Math.abs(tentativeCol - ((float)Math.floor(tentativeCol) + .5f)) <= E) {
+            Hexagon hex1 = getNearestHexToPoint(x-nudgeValue, y-nudgeValue, tileSize, heightOfHexagon)[0];
+            Hexagon hex2 = getNearestHexToPoint(x+nudgeValue, y+nudgeValue, tileSize, heightOfHexagon)[0];
+            return new Hexagon[]{hex1, hex2};
         }
         else
             col = Math.round(tentativeCol);
 
         //needed to do row after column, because I need to know column for the bitwise operation
-        float tentativeRow = (float)((y*(2 - col&1)-100*Math.sqrt(3/2))/((2 - col&1)*100*Math.sqrt(3/2)));
-        //col2 will be set anytime row2 will be set, but col2 may be set without setting row2
-        if(Math.abs(tentativeRow - (int)(tentativeRow) + .5f) <= E){
-            row = (int)tentativeRow;
-            row2 = row+1;
+        int offset = (2 - (col&1));
+        float top = (y*(offset)-heightOfHexagon);
+        float bot = ((offset)*heightOfHexagon);
+        float tentativeRow = top/bot;
+        //anytime points between two rows, the column will have to be changed, but not vice versa,
+        // but since I need to know col to do row, this goes second (even if it would
+        if(Math.abs(tentativeRow - ((float)Math.floor(tentativeRow) + .5f)) <= E){
+            Hexagon hex1 = getNearestHexToPoint(x-nudgeValue, y-nudgeValue, tileSize, heightOfHexagon)[0];
+            Hexagon hex2 = getNearestHexToPoint(x+nudgeValue, y+nudgeValue, tileSize, heightOfHexagon)[0];
+            return new Hexagon[]{hex1, hex2};
         }
         else
             row = Math.round(tentativeRow);
 
-        if(col2 != -1){ //point is on an edge between two hexagons
-            nearestPoints = new Hexagon[2];
-            if(row2 != -1) //hexagons above/below
-                nearestPoints[1] = new Hexagon(row2, col2);
-            else //on diagonal edge with one hex top left/right and other bot right/left
-                nearestPoints[1] = new Hexagon(row, col2);
-        }
-        else //point is not on an edge
-            nearestPoints = new Hexagon[1];
-        nearestPoints[0] = new Hexagon(row, col);
-
-        return nearestPoints;
+        //point is not on an edge
+         return new Hexagon[]{new Hexagon(row, col)};
     }
 
-    private int[] convertToCubeCoordinates(int row, int col){
-        int[] cube = new int[3];
-        cube[0] = col; //x
-        cube[2] = row - (col - (col&1)) / 2; //z
-        cube[1] = -cube[0]-cube[2]; //y
+    private Cube convertToCubeCoordinates(int row, int col){
+        Cube cube = new Cube();
+        cube.x = col; //x
+        cube.z = row - (col - (col&1)) / 2; //z
+        cube.y = -cube.x-cube.z; //y
         return cube;
     }
 
-    private int findManhattanDistance(int startRow, int startCol, int endRow, int endCol){
-        int[] startCube = convertToCubeCoordinates(startRow, startCol);
-        int[] endCube = convertToCubeCoordinates(endRow, endCol);
-        return (Math.abs(startCube[0] - endCube[0]) + Math.abs(startCube[1] - endCube[1]) + Math.abs(startCube[2] - endCube[2]) / 2);
+    int findManhattanDistance(int startRow, int startCol, int endRow, int endCol){
+        Cube startCube = convertToCubeCoordinates(startRow, startCol);
+        Cube endCube = convertToCubeCoordinates(endRow, endCol);
+
+        return (Math.abs(startCube.x - endCube.x) + Math.abs(startCube.y - endCube.y) + Math.abs(startCube.z - endCube.z)) / 2;
     }
 
     /**
+     * Could I have selected something better than an array, since some uses just checks if it
+     * contains a value? Yes...but even a range of 10 will give a max size of 331, so
+     * iterating won't be too much of an issue
      *
      * @param unit unit who is checking the surrounding terrain
+     * @param player the player whose unit the terrain is being checked for
+     * @param attacking indicated whether the unit is checking terrain for attack or movement
+     * @param terrain the terrainMap containing terrain IDs for each mapID
      * @return an array of mapIDs for possible moves for a unit, excluding the current position
      */
-    int[] checkSurroundingTerrain(Unit unit, Player player, boolean attacking){
+    int[] checkSurroundingTerrain(Unit unit, Player player, boolean attacking, byte[] terrain){
         double distance;
         PriorityQueue<TerrainCostTuple> queue = new PriorityQueue<>();
         HashSet<TerrainCostTuple> visited = new HashSet<>(40);
 
-        TerrainCostTuple start = new TerrainCostTuple(unit.getMapID());
+        TerrainCostTuple start = new TerrainCostTuple(unit.getMapID(), terrain[unit.getMapID()]);
         start.setCost(0);
         queue.add(start);
 
@@ -164,32 +181,30 @@ class terrainCalculations {
 
         while(!queue.isEmpty()){
             TerrainCostTuple lowestCostTuple = queue.poll();
-            if(lowestCostTuple.getMapID() != unit.getMapID())
+            if(lowestCostTuple.getMapID() != unit.getMapID() && !visited.contains(lowestCostTuple) &&
+                    !(attacking && unit instanceof RangedUnit && lowestCostTuple.getCost() < ((RangedUnit)unit).getMinAttackRange()))
                 visited.add(lowestCostTuple);
-            TerrainCostTuple[] neighbors = getNeighborTuples(lowestCostTuple.getMapID());
-            for(TerrainCostTuple tuple : neighbors){
-                //projectiles move the same speed in the air regardless of terrain: hence the unit cost
-                if(attacking)
-                    tuple.setCost(lowestCostTuple.getCost() + 1);
-                //not attacking, but I don't want units (even friendly units) to move through each other
-                else if(player.getFriendlyUnit(tuple.getMapID()) == null
-                        && player.getEnemyUnit(tuple.getMapID()) == null)
-                    tuple.setCost(lowestCostTuple.getCost() + unit.getMovementCost(tuple.terID));
-                //if there is a unit there, this unit can't move through it.
+            TerrainCostTuple[] neighbors = getNeighborTuples(lowestCostTuple.getMapID(), terrain);
+            if(neighbors != null) {
+                for (TerrainCostTuple tuple : neighbors) {
 
-                //This doesn't care about distance to all mapIDs, only those reachable by the unit
-                if(tuple.getCost() < distance)
-                    queue.add(tuple);
-                //assumes that there are no spaces available for 0 cost
-                else if(tuple.getCost() == distance)
-                    visited.add(tuple);
-            }
-        }
+                    //projectiles move the same speed in the air regardless of terrain: hence the unit cost
+                    if (attacking)
+                        tuple.setCost(lowestCostTuple.getCost() + 1);
+                        //not attacking, but I don't want units (even friendly units) to move through each other
+                    else if (player.getFriendlyUnit(tuple.getMapID()) == null
+                            && player.getEnemyUnit(tuple.getMapID()) == null)
+                        tuple.setCost(lowestCostTuple.getCost() + unit.getMovementCost(tuple.terID));
+                    //no else: units can't move through other units - friendly or hostile
 
-        if(attacking && unit instanceof RangedUnit){
-            for(TerrainCostTuple t : visited){
-                if(t.getCost() < ((RangedUnit)unit).getMinAttackRange())
-                    visited.remove(t);
+                    //This doesn't care about distance to all mapIDs, only those reachable by the unit
+                    boolean visitedHas = visited.contains(tuple);
+                    boolean queueHas = queue.contains(tuple);
+                    if (tuple.getMapID() != unit.getMapID() && tuple.getCost() <= distance &&
+                            !(visitedHas || queueHas)) {
+                        queue.add(tuple);
+                    }
+                }
             }
         }
         Iterator<TerrainCostTuple> iterator = visited.iterator();
@@ -207,9 +222,9 @@ class terrainCalculations {
         private byte terID;
         private int mapID;
 
-        TerrainCostTuple(int mapID){
+        TerrainCostTuple(int mapID, byte terID){
             this.mapID = mapID;
-            terID = terrain[mapID];
+            this.terID = terID;
             cost = Double.MAX_VALUE;
         }
 
@@ -232,27 +247,24 @@ class terrainCalculations {
             else
                 return 0;
         }
-    }
-
-    //length is 4 to 6
-    private TerrainCostTuple[] getNeighborTuples(int mapID){
-        Integer[] neighborMapIDs = getNeighborsMapIDs(mapID);
-        if(neighborMapIDs == null)
-            return new TerrainCostTuple[0];
-        TerrainCostTuple[] neighbors = new TerrainCostTuple[neighborMapIDs.length];
-        int i = 0;
-        for(Integer gridID : neighborMapIDs){
-            neighbors[i] = new TerrainCostTuple(gridID);
-            i++;
+        @Override
+        public int hashCode(){
+            return mapID;
         }
-        return neighbors;
+        @Override
+        public boolean equals(Object o){
+            if(!(o instanceof   TerrainCostTuple))
+                return false;
+            TerrainCostTuple obj = (TerrainCostTuple)o;
+            return mapID == obj.getMapID();
+        }
     }
 
-    //length is 4 to 6
-    private Integer[] getNeighborsMapIDs(int mapID) {
+    //length is at most 6
+    private TerrainCostTuple[] getNeighborTuples(int mapID, byte[] terrain) {
         if(mapID < 0 || mapID >= terrain.length)
             return null;
-        ArrayList<Integer> neighbors = new ArrayList<>();
+        ArrayList<TerrainCostTuple> neighbors = new ArrayList<>();
         boolean top = false, bot = false, left = false, right = false;
         int rowLength = (int) Math.sqrt(terrain.length);
         int column = mapID / rowLength;
@@ -268,27 +280,27 @@ class terrainCalculations {
 
         //don't check if top and left or right, because they can't be accessed from the hexagon
         if(!top)
-            neighbors.add(mapID - 1);
+            neighbors.add(new TerrainCostTuple(mapID - 1, terrain[mapID - 1]));
         if(!left)
-            neighbors.add(mapID - rowLength);
+            neighbors.add(new TerrainCostTuple(mapID - rowLength, terrain[mapID - rowLength]));
         if(!right)
-            neighbors.add(mapID + rowLength);
+            neighbors.add(new TerrainCostTuple(mapID - rowLength, terrain[mapID - rowLength]));
         if(!bot)
-            neighbors.add(mapID + 1);
+            neighbors.add(new TerrainCostTuple(mapID + 1, terrain[mapID + 1]));
         //odd columns
         if((column & 1) == 1){
             if(!bot && !left)
-                neighbors.add(mapID - rowLength + 1);
+                neighbors.add(new TerrainCostTuple(mapID - rowLength + 1, terrain[mapID - rowLength + 1]));
             if(!bot && !right)
-                neighbors.add(mapID + rowLength + 1);
+                neighbors.add(new TerrainCostTuple(mapID + rowLength + 1, terrain[mapID + rowLength + 1]));
         }
         //even columns
         else{
             if(!top && !left)
-                neighbors.add(mapID - rowLength - 1);
+                neighbors.add(new TerrainCostTuple(mapID - rowLength - 1, terrain[mapID - rowLength - 1]));
             if(!top && !right)
-                neighbors.add(mapID + rowLength - 1);
+                neighbors.add(new TerrainCostTuple(mapID + rowLength - 1, terrain[mapID + rowLength - 1]));
         }
-        return neighbors.toArray(new Integer[neighbors.size()]);
+        return neighbors.toArray(new TerrainCostTuple[neighbors.size()]);
     }
 }

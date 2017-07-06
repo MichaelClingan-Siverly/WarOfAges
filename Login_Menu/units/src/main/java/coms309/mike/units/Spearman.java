@@ -7,10 +7,10 @@ package coms309.mike.units;
 public class Spearman extends Unit {
 
     public Spearman(int mapID, String ownerID, double health){
-        super(mapID, 4, ownerID, 1, health, 25, 0.75);
+        super(mapID, ownerID, 1, health, 25, 0.75);
     }
     public Spearman(int mapID, String owner){
-        super(mapID, 4, owner, 1, 450, 58.33333, .7);
+        super(mapID, owner, 1, 450, 58.33333, .7);
     }
 
     @Override
@@ -52,5 +52,9 @@ public class Spearman extends Unit {
                 modifiedDefense = defense;
         }
         return modifiedDefense;
+    }
+
+    public int getUnitID(){
+        return 4;
     }
 }

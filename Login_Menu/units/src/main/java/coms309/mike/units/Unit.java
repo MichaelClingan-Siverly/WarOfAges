@@ -3,9 +3,12 @@ package coms309.mike.units;
 
 import java.util.Random;
 
+/*
+ *  Visitor pattern would work here, but there are so many visitors it'd
+ *  need that I'd rather not do it unless I start creating many more units
+ */
 public abstract class Unit {
     private int mapID;
-    private int unitID;
     private String ownerID;
     private double moveSpeed;
     private double health;
@@ -14,9 +17,8 @@ public abstract class Unit {
     private boolean moved = false;
     private boolean hasAttacked = false;
 
-    public Unit(int mapID, int unitID, String ownerID, double MovementSpeed, double health, double attack, double defense) {
+    public Unit(int mapID, String ownerID, double MovementSpeed, double health, double attack, double defense) {
         this.mapID = mapID;
-        this.unitID = unitID;
         this.ownerID = ownerID;
         this.moveSpeed=MovementSpeed;
         this.health=health;
@@ -47,11 +49,13 @@ public abstract class Unit {
         return modifiedDefense;
     }
 
-    //TODO I'd like to have units able to have multiple rounds of attack (i.e. Wesnoth)
-    public void attack(Unit enemyUnit, byte myTerrain, byte theirTerrain){
+    public void attack(Unit enemyUnit, byte myTerrain, byte theirTerrain, int distance){
+        int minRange = 1;
+        int maxRange = 1;
         if(hasAttacked)
             return;
         hasAttacked = true;
+        moved = true;
         Random rand = new Random();
         //introduce an element of randomness where each attack can do .5 <= x < 1.5 times the damage
         float myRandom = rand.nextFloat() + .5f;
@@ -59,15 +63,21 @@ public abstract class Unit {
         //set enemy's health
         enemyUnit.setHealth(enemyUnit.getHealth() - attack * myRandom
                 / enemyUnit.calculateDefenseAfterTerrain(theirTerrain));
-        //set my health
-        health = health - enemyUnit.getAttack() * enemyRandom
-                / calculateDefenseAfterTerrain(myTerrain);
+        if(this instanceof RangedUnit && enemyUnit instanceof RangedUnit) {
+            minRange = ((RangedUnit)enemyUnit).getMinAttackRange();
+            maxRange = ((RangedUnit)enemyUnit).getMaxAttackRange();
+        }
+        //if enemy is alive after my attack and can reach me, they can attack back
+        if(enemyUnit.getHealth() > 0 && minRange <= distance && distance <= maxRange)
+            health = health - enemyUnit.getAttack() * enemyRandom
+                    / calculateDefenseAfterTerrain(myTerrain);
     }
 
     public abstract int getCostToRecruit();
 
     public double getMovementCost(byte terID){
-        if(terID == 8)
+        //pond or impassable_mountain
+        if(terID == 8 || terID == 9)
             return Double.MAX_VALUE;
         else
             return 1;
@@ -77,9 +87,7 @@ public abstract class Unit {
         return mapID;
     }
 
-    public int getUnitID() {
-        return unitID;
-    }
+    public abstract int getUnitID();
 
     public String getOwner() {
         return ownerID;

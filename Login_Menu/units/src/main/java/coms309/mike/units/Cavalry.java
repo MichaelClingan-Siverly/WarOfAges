@@ -8,11 +8,11 @@ package coms309.mike.units;
 public class Cavalry extends Unit {
 
     public Cavalry(int mapID, String ownerID, double health){
-        super(mapID, 2, ownerID, 3, health, 100, 0.35);
+        super(mapID, ownerID, 3, health, 100, 0.35);
     }
 
     public Cavalry(int mapID, String owner){
-        super(mapID, 2, owner, 3, 900.0, 100, .35);
+        super(mapID, owner, 3, 900.0, 100, .35);
     }
 
     @Override
@@ -58,5 +58,9 @@ public class Cavalry extends Unit {
                 modifiedDefense = defense;
         }
         return modifiedDefense;
+    }
+
+    public int getUnitID(){
+        return 2;
     }
 }

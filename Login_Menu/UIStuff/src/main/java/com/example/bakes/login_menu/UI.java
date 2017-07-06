@@ -347,53 +347,53 @@ public class UI extends AppCompatActivity implements DisplaysChanges {
                 break;
             case 1: //archer
                 if(friendly && selected)
-                    drawableID = R.drawable.unit_archer_friendly_selected;
+                    drawableID = R.drawable.unit_1_archer_friendly_selected;
                 else if(friendly)
-                    drawableID = R.drawable.unit_archer_friendly;
+                    drawableID = R.drawable.unit_1_archer_friendly;
                 else if(selected)
-                    drawableID = R.drawable.unit_archer_hostile_selected;
+                    drawableID = R.drawable.unit_1_archer_hostile_selected;
                 else
-                    drawableID = R.drawable.unit_archer_hostile;
+                    drawableID = R.drawable.unit_1_archer_hostile;
                 break;
             case 2: //cavalry
                 if(friendly && selected)
-                    drawableID = R.drawable.unit_cavalry_friendly_selected;
+                    drawableID = R.drawable.unit_2_cavalry_friendly_selected;
                 else if(friendly)
-                    drawableID = R.drawable.unit_cavalry_friendly;
+                    drawableID = R.drawable.unit_2_cavalry_friendly;
                 else if(selected)
-                    drawableID = R.drawable.unit_cavalry_hostile_selected;
+                    drawableID = R.drawable.unit_2_cavalry_hostile_selected;
                 else
-                    drawableID = R.drawable.unit_cavalry_hostile;
+                    drawableID = R.drawable.unit_2_cavalry_hostile;
                 break;
             case 3: //swordsman
                 if(friendly && selected)
-                    drawableID = R.drawable.unit_sword_friendly_selected;
+                    drawableID = R.drawable.unit_3_sword_friendly_selected;
                 else if(friendly)
-                    drawableID = R.drawable.unit_sword_friendly;
+                    drawableID = R.drawable.unit_3_sword_friendly;
                 else if(selected)
-                    drawableID = R.drawable.unit_sword_hostile_selected;
+                    drawableID = R.drawable.unit_3_sword_hostile_selected;
                 else
-                    drawableID = R.drawable.unit_sword_hostile;
+                    drawableID = R.drawable.unit_3_sword_hostile;
                 break;
             case 4: //spearman
                 if(friendly && selected)
-                    drawableID = R.drawable.unit_spear_friendly_selected;
+                    drawableID = R.drawable.unit_4_spear_friendly_selected;
                 else if(friendly)
-                    drawableID = R.drawable.unit_spear_friendly;
+                    drawableID = R.drawable.unit_4_spear_friendly;
                 else if(selected)
-                    drawableID = R.drawable.unit_spear_hostile_selected;
+                    drawableID = R.drawable.unit_4_spear_hostile_selected;
                 else
-                    drawableID = R.drawable.unit_spear_hostile;
+                    drawableID = R.drawable.unit_4_spear_hostile;
                 break;
             case 5: //general
                 if(friendly && selected)
-                    drawableID = R.drawable.unit_general_friendly_selected;
+                    drawableID = R.drawable.unit_5_general_friendly_selected;
                 else if(friendly)
-                    drawableID = R.drawable.unit_general_friendly;
+                    drawableID = R.drawable.unit_5_general_friendly;
                 else if(selected)
-                    drawableID = R.drawable.unit_general_hostile_selected;
+                    drawableID = R.drawable.unit_5_general_hostile_selected;
                 else
-                    drawableID = R.drawable.unit_general_hostile;
+                    drawableID = R.drawable.unit_5_general_hostile;
                 break;
             default:
                 return;

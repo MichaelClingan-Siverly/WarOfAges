@@ -5,15 +5,16 @@ package coms309.mike.units;
  */
 
 
-public class Archer extends Unit  implements RangedUnit{
+public class Archer extends Unit implements RangedUnit{
 
     public Archer(int mapID, String ownerID, double health){
-        super(mapID, 1, ownerID, 2, health, 66.66666, 0.10);
+        super(mapID, ownerID, 2, health, 66.66666, 0.10);
     }
 
     public Archer(int mapId, String owner){
-        super(mapId, 1, owner, 2, 300.0, 66.66666, 0.10);
+        super(mapId, owner, 2, 300.0, 66.66666, 0.10);
     }
+
 
     @Override
     public double getMovementCost(byte terID){
@@ -34,6 +35,10 @@ public class Archer extends Unit  implements RangedUnit{
         return cost;
     }
 
+    public boolean needsLineOfSight(){
+        return true;
+    }
+
     public int getCostToRecruit(){
         return 100;
     }
@@ -46,4 +51,7 @@ public class Archer extends Unit  implements RangedUnit{
         return 3;
     }
 
+    public int getUnitID(){
+        return 1;
+    }
 }

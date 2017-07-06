@@ -3,6 +3,9 @@ package warofages.gamebackend;
 import android.content.Context;
 import android.util.SparseArray;
 
+import java.util.HashSet;
+
+import coms309.mike.units.General;
 import coms309.mike.units.Unit;
 
 /**
@@ -66,11 +69,17 @@ public abstract class Player {
         return myUnits.get(mapID);
     }
 
-    public boolean checkIfNoUnits(boolean friendly){
-        if(friendly)
-            return myUnits.size() == 0;
-        else
-            return enemyUnits.size() == 0;
+    public boolean checkIfGeneralAlive(boolean friendly){
+        SparseArray<Unit> army;
+        if(friendly && myUnits.size() == 0 || !friendly && enemyUnits.size() == 0)
+            return false;
+
+        army = friendly ? getMyUnits() : getEnemyUnits();
+        for(int i = 0; i < army.size(); i++){
+            if(army.valueAt(i) != null && army.valueAt(i).getUnitID() == 5)
+                return true;
+        }
+        return false;
     }
 
     public double[] getUnitStats(int unitMapID, byte terID, boolean friendly){
@@ -81,10 +90,11 @@ public abstract class Player {
     }
 
     public String getEnemyName(){
-        if(!checkIfNoUnits(false)){
+        if(enemyUnits.size() > 0){
             //I know its not empty, so at least index 0 must have a unit in it
             return getEnemyUnits().valueAt(0).getOwner();
         }
-        return "An enemy with no army deserved no name";
+        //If the enemy has no units, I should have won...so this is pretty true
+        return "An enemy with no army deserves no name";
     }
 }

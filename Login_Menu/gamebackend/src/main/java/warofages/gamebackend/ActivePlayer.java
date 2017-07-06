@@ -17,10 +17,6 @@ import coms309.mike.units.Unit;
  */
 public class ActivePlayer extends Player {
 
-    //TODO I may not even need this. Feels redundant compared to UIBackground's mapIdManipulated
-    //moving is mapID of a unit marked to move, or -1 if there is none
-    private int moving =- 1;
-
     public ActivePlayer(Context context, String myName, SparseArray<Town> towns){
         super(context, myName);
         setCash(STARTING_CASH);
@@ -49,18 +45,6 @@ public class ActivePlayer extends Player {
                 numTowns++;
         }
         return numTowns;
-    }
-
-
-
-    public void setMoveFromMapID(int unitsMapID){
-        if(unitsMapID != -1 && moving==-1 && getFriendlyUnit(unitsMapID) != null)
-            moving=unitsMapID;
-        else
-            moving=-1;
-    }
-    public int getMoveFromMapID(){
-        return moving;
     }
 
     public boolean moveUnit(int oldMapID, int newMapID){
@@ -96,8 +80,9 @@ public class ActivePlayer extends Player {
         return canMoveTerrain;
     }
 
-    public String attack(Unit attacker, byte attackerTerrain, Unit defender, byte defenderTerrain){
-        attacker.attack(defender, attackerTerrain, defenderTerrain);
+    //attacker does damage before defender does
+    public String attack(Unit attacker, byte attackerTerrain, Unit defender, byte defenderTerrain, int distance, int mapSize){
+        attacker.attack(defender, attackerTerrain, defenderTerrain, distance);
         boolean myUnitKilled = false;
         boolean enemyUnitKilled = false;
         if(attacker.getHealth() <= 0){
@@ -109,12 +94,16 @@ public class ActivePlayer extends Player {
             enemyUnitKilled = true;
         }
 
-        if(myUnitKilled && enemyUnitKilled)
-            return "Draw";
-        else if(myUnitKilled)
+        if(myUnitKilled) {
+            if(attacker.getUnitID() == 5 && checkIfGeneralAlive(true))
+                return "You lose";
             return "Your unit died";
-        else if(enemyUnitKilled)
+        }
+        else if(enemyUnitKilled) {
+            if(defender.getUnitID() == 5 && checkIfGeneralAlive(false))
+                return "Enemy loses";
             return "Enemy unit killed";
+        }
         else
             return "Keep Fighting";
     }
