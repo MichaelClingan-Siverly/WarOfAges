@@ -21,9 +21,17 @@ class terrainCalculations {
 
     class Hexagon{
         int row, col;
+        private Hexagon partnerHex;
         Hexagon(int row, int col){
             this.row = row;
             this.col = col;
+            partnerHex = null;
+        }
+        public void setPartnerHex(Hexagon partner){
+            partnerHex = partner;
+        }
+        public Hexagon getPartnerHex(){
+            return partnerHex;
         }
     }
     private class Cube{
@@ -71,7 +79,7 @@ class terrainCalculations {
         int numSamples = findManhattanDistance(startRow, startCol, endRow, endCol);
 
         //the extra size is because theres a chance the point may be on an edge. I want to check both of them
-        Hexagon[] path = new Hexagon[numSamples + 1 + (numSamples)/2];
+        ArrayList<Hexagon>  path= new ArrayList<>(numSamples + 1 + (numSamples)/2);
         Hexagon[] nearestHexagons;
         //distance between the samples; add onto the x and y each time to follow the slope of the line
         float xSampleDist = (endX - startX) / numSamples;
@@ -79,7 +87,8 @@ class terrainCalculations {
         float x = startX;
         float y = startY;
         //the first hexagon the line hits is the one where it started
-        path[0] = new Hexagon(startRow, startCol);
+        path.add(new Hexagon(startRow, startCol));
+
 
         //sample variable keeps track of what index in path I insert into.
         // can't use i, since sometimes I make two insertions per point
@@ -87,14 +96,16 @@ class terrainCalculations {
             x += xSampleDist;
             y += ySampleDist;
             nearestHexagons = getNearestHexToPoint(x,y, tileSize, heightOfHexagon);
-            path[sample] = nearestHexagons[0]; //there will always be at least one nearest hexagon
+            path.add(nearestHexagons[0]);
+//            path[sample] = nearestHexagons[0]; //there will always be at least one nearest hexagon
             //possible to have two nearest ones (point on an edge), happens at most numSamples/2 times
             if(nearestHexagons.length > 1) {
-                sample++;
-                path[sample] = nearestHexagons[1];
+//                sample++;
+                path.add(nearestHexagons[1]);
+//                path[sample] = nearestHexagons[1];
             }
         }
-        return path;
+        return path.toArray(new Hexagon[path.size()]);
     }
 
     //if a point is on an edge between two hexagons, nudges x and y
@@ -126,6 +137,8 @@ class terrainCalculations {
         if(Math.abs(tentativeRow - ((float)Math.floor(tentativeRow) + .5f)) <= E){
             Hexagon hex1 = getNearestHexToPoint(x-nudgeValue, y-nudgeValue, tileSize, heightOfHexagon)[0];
             Hexagon hex2 = getNearestHexToPoint(x+nudgeValue, y+nudgeValue, tileSize, heightOfHexagon)[0];
+            hex1.setPartnerHex(hex2);
+            hex2.setPartnerHex(hex1);
             return new Hexagon[]{hex1, hex2};
         }
         else
@@ -284,7 +297,7 @@ class terrainCalculations {
         if(!left)
             neighbors.add(new TerrainCostTuple(mapID - rowLength, terrain[mapID - rowLength]));
         if(!right)
-            neighbors.add(new TerrainCostTuple(mapID - rowLength, terrain[mapID - rowLength]));
+            neighbors.add(new TerrainCostTuple(mapID + rowLength, terrain[mapID + rowLength]));
         if(!bot)
             neighbors.add(new TerrainCostTuple(mapID + 1, terrain[mapID + 1]));
         //odd columns

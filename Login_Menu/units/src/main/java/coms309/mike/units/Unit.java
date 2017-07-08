@@ -1,6 +1,7 @@
 package coms309.mike.units;
 
 
+import java.util.HashSet;
 import java.util.Random;
 
 /*
@@ -9,6 +10,8 @@ import java.util.Random;
  */
 public abstract class Unit {
     private int mapID;
+    private HashSet<Integer> moves;
+    private HashSet<Integer> attacks;
     private String ownerID;
     private double moveSpeed;
     private double health;
@@ -24,6 +27,8 @@ public abstract class Unit {
         this.health=health;
         this.attack=attack;
         this.defense=defense;
+        moves = null;
+        attacks = null;
     }
 
     public double calculateDefenseAfterTerrain(byte terrain){
@@ -62,7 +67,7 @@ public abstract class Unit {
         float enemyRandom = rand.nextFloat() + .5f;
         //set enemy's health
         enemyUnit.setHealth(enemyUnit.getHealth() - attack * myRandom
-                / enemyUnit.calculateDefenseAfterTerrain(theirTerrain));
+                / (1+enemyUnit.calculateDefenseAfterTerrain(theirTerrain)));
         if(this instanceof RangedUnit && enemyUnit instanceof RangedUnit) {
             minRange = ((RangedUnit)enemyUnit).getMinAttackRange();
             maxRange = ((RangedUnit)enemyUnit).getMaxAttackRange();
@@ -70,7 +75,7 @@ public abstract class Unit {
         //if enemy is alive after my attack and can reach me, they can attack back
         if(enemyUnit.getHealth() > 0 && minRange <= distance && distance <= maxRange)
             health = health - enemyUnit.getAttack() * enemyRandom
-                    / calculateDefenseAfterTerrain(myTerrain);
+                    / (1+calculateDefenseAfterTerrain(myTerrain));
     }
 
     public abstract int getCostToRecruit();
@@ -81,6 +86,31 @@ public abstract class Unit {
             return Double.MAX_VALUE;
         else
             return 1;
+    }
+
+    public void setPossibleActions(int[] possibleMoves, int[] possibleAttacks){
+        if(possibleMoves != null) {
+            moves = new HashSet<>(possibleMoves.length * 2);
+            for (int move : possibleMoves)
+                moves.add(move);
+        }
+        else
+            moves = null;
+
+        if(possibleAttacks != null) {
+            attacks = new HashSet<>(possibleAttacks.length * 2);
+            for (int attack : possibleAttacks)
+                attacks.add(attack);
+        }
+        else
+            attacks = null;
+    }
+
+    public boolean checkIfPossibleMove(int mapID){
+        return moves != null && moves.contains(mapID);
+    }
+    public boolean checkIfPossibleAttack(int mapID){
+        return attacks != null && attacks.contains(mapID);
     }
 
     public int getMapID() {

@@ -98,23 +98,23 @@ class InactivePlayer extends Player{
             else if(!enemyUnits.valueAt(i).getOwner().equals(nameOne)){
                 //I don't return here because it also separates armies if I am a spectator.
                 //no need to possibly iterate through n-1 units to separate them later
-                String nameTwo = enemyUnits.get(i).getOwner();
+                String nameTwo = enemyUnits.valueAt(i).getOwner();
                 spectatorWatchPlayer = nameTwo;
-                int mapID = enemyUnits.get(i).getMapID();
-                int unitID = enemyUnits.get(i).getUnitID();
-                double unitHealth = enemyUnits.get(i).getHealth();
+                int mapID = enemyUnits.valueAt(i).getMapID();
+                int unitID = enemyUnits.valueAt(i).getUnitID();
+                double unitHealth = enemyUnits.valueAt(i).getHealth();
                 int moved;
-                if(enemyUnits.get(i).checkIfMoved())
+                if(enemyUnits.valueAt(i).checkIfMoved())
                     moved = 1;
                 else
                     moved = 0;
                 int attacked;
-                if(enemyUnits.get(i).checkIfAttacked())
+                if(enemyUnits.valueAt(i).checkIfAttacked())
                     attacked = 1;
                 else
                     attacked = 0;
                 addUnit(nameTwo, mapID, unitID, unitHealth, moved, attacked);
-                enemyUnits.remove(i);
+                enemyUnits.remove(enemyUnits.keyAt(i));
                 i--;
             }
         }

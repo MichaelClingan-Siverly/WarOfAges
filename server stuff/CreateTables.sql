@@ -7,31 +7,28 @@ playerOrder tinyint default 0,
 primary key(userID));
 
 
+#for the most part, this is pretty useless, just shows supported area types/IDs
 CREATE TABLE Terrain (
 AreaType varchar(20),
 terr_ID tinyint,
 terr_description varchar(50),
 primary key(AreaType));
 
-
-//don't really need this table...
+#don't really need this table...but at least it shows the supported unitIDs
 CREATE TABLE UnitType (
 UnitID int, 
-Strength int, 
-Health double,
-Defense int, 
-movement int,
 UnitName varchar(20),
-primary key(UnitID));
+primary key(UnitID),
+unique(UnitName));
 
 
 Create Table AdminMap(
 GridID int,
 AreaType varchar(20),
-Owner varchar(15) default '',
+Owner varchar(15) default NULL,
 primary key (GridID),
 foreign key(Owner) 
-	references Terrain (userID),
+	references users (userID),
 foreign key(AreaType) 
 	references Terrain (AreaType));    
 
@@ -39,25 +36,25 @@ foreign key(AreaType)
 Create Table BasicMap(
 GridID int,
 AreaType varchar(20),
-Owner varchar(15) default '',
+Owner varchar(15) default NULL,
 primary key (GridID),
 foreign key(Owner) 
-	references Terrain (userID),
+	references users (userID),
 foreign key(AreaType) 
 	references Terrain (AreaType));
     
 
-//I don't use gridID as a foreign key here because it may be placed in a number of maps
-//If I make multiple maps, I'll have to roll this into them or make multiple unitMaps too
+#I don't use gridID as a foreign key here because it may be placed in a number of maps
+#If I make multiple maps, I'll have to roll this into them or make multiple unitMaps too
 Create Table UnitMap(
 GridID int,
 UnitID int,
 health double,
-tinyint moved default 0,
-tinyint attacked default 0,
+moved tinyint default 0,
+attacked tinyint default 0,
 userID varchar(15),
 primary key (GridID),
-foreigh key(UnitID)
+foreign key(UnitID)
 	references UnitType (UnitID),
 foreign key(userID) 
 	references users (userID),
@@ -65,126 +62,133 @@ foreign key(UnitID)
 	references UnitType (UnitID));
 
 
-//basic values
-insert INTO users values ('admin', 'admin', '1234', 0, 0, 0);
-insert INTO users values ('Username', 'user', 'Password', 0, 0, 0);
+#basic values      
+insert INTO users values('admin', '1234', 0, 0, 0),
+			 ('Username', 'Password', 0, 0, 0);
 
 
-insert INTO Terrain values('desert', 1, 'The sand dunes stretch for miles');
-insert INTO Terrain values('forest', 2, 'land covered in trees and bushes');
-insert INTO Terrain values('meadow', 3, 'a flat grassland with flowers');
-insert INTO Terrain values('mountain', 4, 'The tallest thing in the world');
-insert INTO Terrain values('town_friendly', 5, 'an urban community');
-insert INTO Terrain values('town_hostile', 6, 'an urban community');
-insert INTO Terrain values('town_neutral', 7, 'an urban community');
-insert INTO Terrain values('water', 8, 'a body of water you cannot cross');
-insert INTO Terrain values('impassable_mountain' 9, 'mountains which no man has ever climbed');
+insert INTO Terrain values('desert', 1, 'The sand dunes stretch for miles'),
+			  ('forest', 2, 'land covered in trees and bushes'),
+			  ('meadow', 3, 'a flat grassland with flowers'),
+			  ('mountain', 4, 'The tallest thing in the world'),
+			  ('town_friendly', 5, 'an urban community'),
+			  ('town_friendly_start', 5, 'an urban community'),
+			  ('town_hostile', 6, 'an urban community'),
+			  ('town_hostile_start', 6, 'an urban community'),
+			  ('town_neutral', 7, 'an urban community'),
+			  ('water', 8, 'a body of water you cannot cross'),
+			  ('impassable_mountain', 9, 'mountains which no man has ever climbed');
 
 
-//Yea...This needs to be made better...
-insert INTO BasicMap values (0,'town_friendly');
-insert INTO BasicMap values (1,'desert');
-insert INTO BasicMap values (2,'desert');
-insert INTO BasicMap values (3,'desert');
-insert INTO BasicMap values (4,'desert');
-insert INTO BasicMap values (5,'desert');
-insert INTO BasicMap values (6,'desert');
-insert INTO BasicMap values (7,'desert');
-insert INTO BasicMap values (8,'desert');
-insert INTO BasicMap values (9,'desert');
-insert INTO BasicMap values (10,'desert');
-insert INTO BasicMap values (11,'desert');
-insert INTO BasicMap values (12,'desert');
-insert INTO BasicMap values (13,'desert');
-insert INTO BasicMap values (14,'desert');
-insert INTO BasicMap values (15,'desert');
-insert INTO BasicMap values (16,'desert');
-insert INTO BasicMap values (17,'desert');
-insert INTO BasicMap values (18,'desert');
-insert INTO BasicMap values (19,'desert');
-insert INTO BasicMap values (20,'desert');
-insert INTO BasicMap values (21,'desert');
-insert INTO BasicMap values (22,'desert');
-insert INTO BasicMap values (23,'desert');
-insert INTO BasicMap values (24,'desert');
-insert INTO BasicMap values (25,'desert');
-insert INTO BasicMap values (26,'desert');
-insert INTO BasicMap values (27,'desert');
-insert INTO BasicMap values (28,'desert');
-insert INTO BasicMap values (29,'desert');
-insert INTO BasicMap values (30,'desert');
-insert INTO BasicMap values (31,'desert');
-insert INTO BasicMap values (32,'desert');
-insert INTO BasicMap values (33,'desert');
-insert INTO BasicMap values (34,'desert');
-insert INTO BasicMap values (35,'desert');
-insert INTO BasicMap values (36,'desert');
-insert INTO BasicMap values (37,'desert');
-insert INTO BasicMap values (38,'desert');
-insert INTO BasicMap values (39,'desert');
-insert INTO BasicMap values (40,'desert');
-insert INTO BasicMap values (41,'desert');
-insert INTO BasicMap values (42,'desert');
-insert INTO BasicMap values (43,'desert');
-insert INTO BasicMap values (44,'desert');
-insert INTO BasicMap values (45,'desert');
-insert INTO BasicMap values (46,'desert');
-insert INTO BasicMap values (47,'desert');
-insert INTO BasicMap values (48,'desert');
-insert INTO BasicMap values (49,'desert');
-insert INTO BasicMap values (50,'desert');
-insert INTO BasicMap values (51,'desert');
-insert INTO BasicMap values (52,'desert');
-insert INTO BasicMap values (53,'desert');
-insert INTO BasicMap values (54,'desert');
-insert INTO BasicMap values (55,'desert');
-insert INTO BasicMap values (56,'desert');
-insert INTO BasicMap values (57,'desert');
-insert INTO BasicMap values (58,'desert');
-insert INTO BasicMap values (59,'desert');
-insert INTO BasicMap values (60,'desert');
-insert INTO BasicMap values (61,'desert');
-insert INTO BasicMap values (62,'desert');
-insert INTO BasicMap values (63,'desert');
-insert INTO BasicMap values (64,'desert');
-insert INTO BasicMap values (65,'desert');
-insert INTO BasicMap values (66,'desert');
-insert INTO BasicMap values (67,'desert');
-insert INTO BasicMap values (68,'desert');
-insert INTO BasicMap values (69,'desert');
-insert INTO BasicMap values (70,'desert');
-insert INTO BasicMap values (71,'desert');
-insert INTO BasicMap values (72,'desert');
-insert INTO BasicMap values (73,'desert');
-insert INTO BasicMap values (74,'desert');
-insert INTO BasicMap values (75,'desert');
-insert INTO BasicMap values (76,'desert');
-insert INTO BasicMap values (77,'desert');
-insert INTO BasicMap values (78,'desert');
-insert INTO BasicMap values (79,'desert');
-insert INTO BasicMap values (80,'desert');
-insert INTO BasicMap values (81,'desert');
-insert INTO BasicMap values (82,'desert');
-insert INTO BasicMap values (83,'desert');
-insert INTO BasicMap values (84,'desert');
-insert INTO BasicMap values (85,'desert');
-insert INTO BasicMap values (86,'desert');
-insert INTO BasicMap values (87,'desert');
-insert INTO BasicMap values (88,'desert');
-insert INTO BasicMap values (89,'desert');
-insert INTO BasicMap values (90,'desert');
-insert INTO BasicMap values (91,'desert');
-insert INTO BasicMap values (92,'desert');
-insert INTO BasicMap values (93,'desert');
-insert INTO BasicMap values (94,'desert');
-insert INTO BasicMap values (95,'desert');
-insert INTO BasicMap values (96,'desert');
-insert INTO BasicMap values (97,'desert');
-insert INTO BasicMap values (98,'desert');
-insert INTO BasicMap values (99,'town_hostile');
+#Yea...This needs to be made better...
+insert Into BasicMap (GridID, AreaType)
+		      values(0,'town_friendly_start'),
+		            (1,'town_neutral'),
+		            (2,'meadow'),
+		            (3,'town_neutral'),
+		            (4,'water'),
+		            (5,'town_neutral'),
+		            (6,'town_neutral'),
+		            (7,'town_friendly'),
+		            (8,'impassable_mountain'),
+		            (9,'town_neutral'),
+		            (10,'town_neutral'),
+		            (11,'water'),
+		            (12,'meadow'),
+		            (13,'impassable_mountain'),
+		            (14,'forest'),
+		            (15,'desert'),
+		            (16,'impassable_mountain'),
+		            (17,'impassable_mountain'),
+		            (18,'town_neutral'),
+		            (19,'mountain'),
+		            (20,'water'),
+		            (21,'impassable_mountain'),
+		            (22,'water'),
+		            (23,'desert'),
+		            (24,'mountain'),
+		            (25,'town_neutral'),
+		            (26,'forest'),
+		            (27,'town_friendly'),
+		            (28,'meadow'),
+		            (29,'water'),
+		            (30,'forest'),
+		            (31,'impassable_mountain'),
+		            (32,'town_neutral'),
+		            (33,'water'),
+		            (34,'water'),
+		            (35,'town_friendly'),
+		            (36,'meadow'),
+		            (37,'water'),
+		            (38,'desert'),
+		            (39,'mountain'),
+		            (40,'mountain'),
+		            (41,'town_friendly'),
+		            (42,'mountain'),
+		            (43,'town_neutral'),
+		            (44,'impassable_mountain'),
+		            (45,'town_neutral'),
+		            (46,'water'),
+		            (47,'town_neutral'),
+		            (48,'desert'),
+		            (49,'meadow'),
+		            (50,'town_neutral'),
+		            (51,'impassable_mountain'),
+		            (52,'town_friendly'),
+		            (53,'impassable_mountain'),
+		            (54,'water'),
+		            (55,'forest'),
+		            (56,'town_neutral'),
+		            (57,'impassable_mountain'),
+		            (58,'meadow'),
+		            (59,'water'),
+		            (60,'impassable_mountain'),
+		            (61,'water'),
+		            (62,'desert'),
+		            (63,'town_neutral'),
+		            (64,'water'),
+		            (65,'desert'),
+		            (66,'town_neutral'),
+		            (67,'meadow'),
+		            (68,'impassable_mountain'),
+		            (69,'meadow'),
+		            (70,'forest'),
+		            (71,'mountain'),
+		            (72,'mountain'),
+		            (73,'town_hostile'),
+		            (74,'town_neutral'),
+		            (75,'water'),
+		            (76,'town_neutral'),
+		            (77,'meadow'),
+		            (78,'mountain'),
+		            (79,'impassable_mountain'),
+		            (80,'desert'),
+		            (81,'town_neutral'),
+		            (82,'town_hostile'),
+		            (83,'town_hostile'),
+		            (84,'town_neutral'),
+		            (85,'meadow'),
+		            (86,'water'),
+		            (87,'meadow'),
+		            (88,'town_hostile'),
+		            (89,'water'),
+		            (90,'mountain'),
+		            (91,'mountain'),
+		            (92,'mountain'),
+		            (93,'town_hostile'),
+		            (94,'town_neutral'),
+		            (95,'meadow'),
+		            (96,'town_neutral'),
+		            (97,'town_neutral'),
+		            (98,'town_neutral'),
+		            (99,'town_hostile');
 
-insert into UnitType values(1,3,300.0,3,1,'archer');
-insert into UnitType values(2,5,900.0,2,3,'calvary');
-insert into UnitType values(3,4,600.0,4,2,'swordman');
-insert into UnitType values(4,6,450.0,3,2,'spearman');
-insert into UnitType values(5,8,2000.0,5,2,'general');
+update BasicMap set Owner = 'friendly' where AreaType like 'town_friendly%';
+update BasicMap set Owner = 'hostile' where AreaType like 'town_hostile%';
+update BasicMap set Owner = 'neutral' where AreaType = 'town_neutral';
+
+insert into UnitType values(1,'archer'),
+		           (2,'calvary'),
+		           (3,'swordman'),
+		           (4,'spearman'),
+		           (5,'general');

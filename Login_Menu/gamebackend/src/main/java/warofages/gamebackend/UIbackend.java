@@ -7,6 +7,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.HashSet;
 import java.util.Scanner;
 
 import coms309.mike.clientcomm.ClientComm;
@@ -28,7 +29,7 @@ public class UIbackend implements AsyncResultHandler{
     private DisplaysChanges UI;
     private ClientComm comm;
     private byte[] terrainMap;
-    private int[] highlightedArea;
+    private HashSet<Integer> highlightedArea;
     //keeps track of where a unit is moving from or where a town menu is opened from
     private int mapIdManipulated;
     private Player player;
@@ -115,17 +116,19 @@ public class UIbackend implements AsyncResultHandler{
     }
 
     private void setTownOwnership(String owner, int mapID){
-        int newTerID;
+        byte newTerID;
         if(owner.equals(player.getName()))
             newTerID = 5;
         else
             newTerID = 6;
+        terrainMap[mapID] = newTerID;
         towns.get(mapID).setOwner(owner);
         UI.changeTownOwnership(newTerID, mapID);
     }
 
     //it's possible that the hostile town's owner wont be set before the first player becomes active, but its ok since its still marked as hostile
     private boolean setTownOwnersAfterPoll(JSONArray townArray){
+        boolean returnThis = true;
         if(townArray == null)
             return false;
         for(int i = 0; i < townArray.length(); i++){
@@ -146,7 +149,7 @@ public class UIbackend implements AsyncResultHandler{
                 Log.d("setTownOwnership", e.getLocalizedMessage());
             }
         }
-        return true;
+        return returnThis;
     }
 
     private boolean playerIsActive(){
@@ -259,12 +262,12 @@ public class UIbackend implements AsyncResultHandler{
 
     private void displayStats(int mapID){
         //if a friendly unit was not selected, see if an enemy unit is there and display its stats if so
-        if(mapIdManipulated != -1 && getUnitFromMap(mapID, false) != null) {
+        if(mapIdManipulated == -1 && getUnitFromMap(mapID, false) != null) {
             //display unit stats
             double[] stats = player.getUnitStats(mapID, terrainMap[mapID], false);
             UI.setInfoBar("Enemy Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + Math.round(stats[2]*10000)/100 + "%");
         }
-        else if(mapIdManipulated != -1 && getUnitFromMap(mapID, true) != null){
+        else if(mapIdManipulated == -1 && getUnitFromMap(mapID, true) != null){
             double[] stats = player.getUnitStats(mapID, terrainMap[mapID], true);
             UI.setInfoBar("Unit Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + Math.round(stats[2]*10000)/100 + "%");
         }
@@ -298,9 +301,13 @@ public class UIbackend implements AsyncResultHandler{
             mapIdManipulated = mapIdClicked;
             UI.displayTownMenu();
         }
-        else if(playerIsActive()){
+        else{
             //nothing has been selected to move yet
             if(movingUnit == null){
+                if(mapIdManipulated >= 0) {
+                    resetMapIdManipulated();
+                    UI.dismissTownMenu();
+                }
                 return;
             }
             if(mapIdManipulated == -1){
@@ -328,7 +335,7 @@ public class UIbackend implements AsyncResultHandler{
                     }
                     break;
                 case 1: //"canMoveTerrain"
-                    if(mapID == mapIdClicked && !movingUnit.checkIfMoved()){
+                    if(mapID == mapIdClicked && !movingUnit.checkIfMoved() && movingUnit.checkIfPossibleMove(mapID)){
                         sendMove(mapIdClicked, mapIdManipulated);
                         //clears the old terrain
                         UI.displayForeground(mapIdManipulated, unitID, true, false);
@@ -346,7 +353,7 @@ public class UIbackend implements AsyncResultHandler{
                         //display cash
                         UI.setInfoBar("Cash: " + player.getCash());
                     }
-                    else if(mapID == mapIdClicked)
+                    else if(mapID == mapIdClicked && movingUnit.checkIfPossibleMove(mapID))
                         UI.makeToast("This unit has already moved.");
                     break;
                 case 2: //"canMoveEnemy"
@@ -355,9 +362,10 @@ public class UIbackend implements AsyncResultHandler{
                     if(unit != null) {
                         unitID = unit.getUnitID();
                         friendly = false;
+                        //TODO after combat, all units on a players side end with the same health
                         //after its un-highlighted, do combat
                         // (I un-highlight first in case the attack is out of range)
-                        if (mapID == mapIdClicked && !movingUnit.checkIfAttacked()) {
+                        if (mapID == mapIdClicked && !movingUnit.checkIfAttacked() && movingUnit.checkIfPossibleAttack(mapID)) {
                             int result = UIAttack(movingUnit, getUnitFromMap(mapID, false));
                             //enemy dies, change the unitID so display will be properly updated
                             if(result == 1)
@@ -372,6 +380,7 @@ public class UIbackend implements AsyncResultHandler{
             UI.displayForeground(mapID, unitID, friendly, false);
         }
         highlightedArea = null;
+        movingUnit.setPossibleActions(null, null);
         resetMapIdManipulated();
     }
 
@@ -425,16 +434,15 @@ public class UIbackend implements AsyncResultHandler{
 
         for (int move : highlightedArea) {
             int moveCheck = ((ActivePlayer)player).checkIfUnitOnSpace(move);
-            //Only highlights friendly units is it is the one currently moving
+            //Only highlights friendly units if it is the one currently moving
             if(moveCheck == 0 && move == movingUnit.getMapID())
                 UI.displayForeground(move, movingUnit.getUnitID(), true, true);
-            if (moveCheck == 1)
+            if (moveCheck == 1 && movingUnit.checkIfPossibleMove(move))
                 UI.displayForeground(move, 0, true, true);
-            else if (moveCheck == 2) {
+            else if (moveCheck == 2 && movingUnit.checkIfPossibleAttack(move)) {
                 Unit u = getUnitFromMap(move, false);
-                if(u == null)
-                    return;
-                UI.displayForeground(move, u.getUnitID(), false, true);
+                if(u != null)
+                    UI.displayForeground(move, u.getUnitID(), false, true);
             }
         }
     }
@@ -442,11 +450,17 @@ public class UIbackend implements AsyncResultHandler{
     private void findLargestArea(Unit u){
         int[] moves = new terrainCalculations().checkSurroundingTerrain(u, player, false, terrainMap);
         int[] attacks = new terrainCalculations().checkSurroundingTerrain(u, player, true, terrainMap);
+        u.setPossibleActions(moves, attacks);
 
-        if (moves.length > attacks.length && u != null && !u.checkIfMoved())
-            highlightedArea = moves;
-        else
-            highlightedArea = attacks;
+        highlightedArea = new HashSet<>();
+        if (!u.checkIfMoved()) {
+            for(int move : moves)
+                highlightedArea.add(move);
+        }
+        if(!u.checkIfAttacked()){
+            for(int attack : attacks)
+                highlightedArea.add(attack);
+        }
     }
 
     //Decided to move a lot of the checks for activePlayer name and stuff to here because I'd like
@@ -464,7 +478,6 @@ public class UIbackend implements AsyncResultHandler{
             } catch (JSONException e) {
                 Log.d("handlePollResult", e.getLocalizedMessage());
             }
-            townsAllUpdated = setTownOwnersAfterPoll(townArray);
         }
         boolean active = false;
         String activePlayer;
@@ -474,6 +487,8 @@ public class UIbackend implements AsyncResultHandler{
             // which unit is which otherwise. Maybe one day I can have the server assign a unique ID
             // for each unit so that  it can only send info about units which have changed
             active = ((InactivePlayer)player).receiveNewJSON(result);
+            if(townArray != null)
+                townsAllUpdated = setTownOwnersAfterPoll(townArray);
             if(active && townsAllUpdated)
                 ((InactivePlayer)player).killPoll();
 
@@ -541,11 +556,20 @@ public class UIbackend implements AsyncResultHandler{
 
                 if(attackingUnit instanceof RangedUnit && ((RangedUnit)attackingUnit).needsLineOfSight()){
                     terrainCalculations.Hexagon[] path = mapCalc.checkLine(myMapID, enemyMapID, terrainMap.length);
-                    //I don't care about what terrain the attacker is in
-                    for(int i = 1; i < path.length; i++){
-                        int terID = terrainMap[path[i].col + path[i].row];
+                    //I don't care about what terrain the attacker or defender is in
+                    // (can shoot onto a mountain, etc, but not past it)
+                    for(int i = 1; i < path.length -1; i++){
+                        int mapID = path[i].col*rowLength + path[i].row;
+                        int terID = terrainMap[mapID];
                         if(terID == 2 || terID >= 4 && terID <= 7 || terID == 9){
-                            canReach = false;
+                            //if the path is on the edge between two hexagons, check the partner for line of sight
+                            if(path[i].getPartnerHex() != null){
+                                terID = terrainMap[path[i].getPartnerHex().col*rowLength + path[i].getPartnerHex().row];
+                                if(terID == 2 || terID >= 4 && terID <= 7 || terID == 9)
+                                    canReach = false;
+                            }
+                            else
+                                canReach = false;
                         }
                     }
                 }

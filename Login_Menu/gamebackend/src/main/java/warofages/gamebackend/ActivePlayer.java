@@ -82,7 +82,11 @@ public class ActivePlayer extends Player {
 
     //attacker does damage before defender does
     public String attack(Unit attacker, byte attackerTerrain, Unit defender, byte defenderTerrain, int distance, int mapSize){
+        int myHealth = (int)attacker.getHealth();
+        int theirHealth = (int)defender.getHealth();
         attacker.attack(defender, attackerTerrain, defenderTerrain, distance);
+        int theirLostHealth;
+        int myLostHealth;
         boolean myUnitKilled = false;
         boolean enemyUnitKilled = false;
         if(attacker.getHealth() <= 0){
@@ -93,6 +97,8 @@ public class ActivePlayer extends Player {
             enemyUnits.remove(defender.getMapID());
             enemyUnitKilled = true;
         }
+        myLostHealth = myHealth - (int)attacker.getHealth();
+        theirLostHealth = theirHealth - (int)defender.getHealth();
 
         if(myUnitKilled) {
             if(attacker.getUnitID() == 5 && checkIfGeneralAlive(true))
@@ -104,8 +110,13 @@ public class ActivePlayer extends Player {
                 return "Enemy loses";
             return "Enemy unit killed";
         }
-        else
-            return "Keep Fighting";
+        else{
+            String s = "enemy takes "+theirLostHealth+" damage";
+            if(myLostHealth > 0){
+                s += ", you take "+myLostHealth+" damage";
+            }
+            return s;
+        }
     }
 
     /**
