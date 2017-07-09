@@ -11,7 +11,7 @@ $oldLocal = $decoded[2]["oldID"];
 $response = array();
 //select the owner based on the old location of the unit
 $sql = "select userID from UnitMap where GridID = ".$oldLocal.";";
-$result = mysqli_query($con,$sql);
+mysqli_query($con,$sql);
 
 // If the new location is the same spot as the old location, send back that no changes occurred
 if($newLocal == $oldLocal){
@@ -21,7 +21,13 @@ if($newLocal == $oldLocal){
 }
 else{
 	//updating to new location based on the unit's owner and old location
-	$sql = "update UnitMap set GridID = ".$newLocal." where GridID =".$oldLocal." AND userID = '".$userID."'";
+	$sql = "SELECT Owner FROM AdminMap WHERE GridID = ".$newLocal."";
+	$result = mysqli_query($con,$sql);
+	if(mysqli_num_rows($result) > 0){
+	    $sql = "UPDATE AdminMap SET Owner = '".$userID."' WHERE GridID = ".$newLocal." AND Owner IS NOT NULL";
+	    mysqli_query($con,$sql);
+	}
+	$sql = "update UnitMap set GridID = ".$newLocal.", moved = 1 where GridID =".$oldLocal." AND userID = '".$userID."'";
 	$response = array();
 	if(mysqli_query($con,$sql)){
 		

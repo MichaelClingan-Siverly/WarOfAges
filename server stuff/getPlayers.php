@@ -29,31 +29,50 @@ if(mysqli_num_rows($result)>0){
         $check_result2 = mysqli_fetch_array($result_2)[0];
         if(mysqli_num_rows($result) == 0 || strcmp($check_result, $userID) == 0){
                 //player one not logged in
-                $sql = "UPDATE users SET player = 0, playerOrder = 1 WHERE userID = '".$userID."'";
+                $sql = "UPDATE users SET playerOrder = 1 WHERE userID = '".$userID."'";
                 mysqli_query($con,$sql);
-                //if player 1 left the game, then player 2 is already assigned. Check if player 2 is active, and if not that means this needs to be active
-                if(mysqli_num_rows($result_2) == 1){
-                    $sql = "UPDATE users SET player = 1 WHERE userID = '".$userID."'";
+                //check if player 1 left the game - player 2 is already assigned.
+                if(mysqli_num_rows($result_2) > 0){
+                    //Check if player 2 is active, and if not that means this needs to be active
+                    $sql = "SELECT userID FROM users WHERE player = 1";
+                    $result = mysqli_query($con,$sql);
+                    if(mysqli_num_rows == 0){
+                        $sql = "UPDATE users SET player = 1 WHERE userID = '".$userID."'";
+                        mysqli_query($con,$sql);
+                    }
+                    $sql = "UPDATE AdminMap SET Owner = '".$userID."' WHERE Owner = 'friendly'";
                     mysqli_query($con,$sql);
                 }
-                else{
-                    $sql = "UPDATE UnitMap SET userID = '".$userID."' WHERE userID = 'friendly'";
-                    mysqli_query($con,$sql);
-                    $sql = "UPDATE AdminMap SET Owner = '".$userID."' WHERE (AreaType = 'town_friendly_start' AND Owner = '') OR Owner = 'friendly'";
-                    mysqli_query($con,$sql);
-                }
+                $sql = "UPDATE UnitMap SET userID = '".$userID."' WHERE userID = 'friendly'";
+                mysqli_query($con,$sql);
                 $code = "player 1 assigned";
         }
         else if(mysqli_num_rows($result_2) == 0 || strcmp($check_result2, $userID) == 0){
                 //player two not logged in
                 $sql = "UPDATE users SET playerOrder = 2 WHERE loggedIn = 1 AND userID = '".$userID."'";
                 mysqli_query($con,$sql);
-                //previously set player two to be first active player.
-                $sql = "UPDATE users SET player = 1 WHERE playerOrder = 1";
-                mysqli_query($con,$sql);
+                $sql = "SELECT GridID FROM AdminMap WHERE Owner = 'friendly'";
+                $result = mysqli_query($con,$sql);
+                //game has not yet started (first time player 2 joins)
+                if(mysqli_num_rows($result) > 0){
+                    $sql = "UPDATE users SET player = 1 WHERE playerOrder = 1";
+                    mysqli_query($con,$sql);
+                    $sql = "UPDATE AdminMap SET Owner = (SELECT userID FROM users WHERE playerOrder = 1) WHERE Owner = 'friendly'";
+                    mysqli_query($con,$sql);
+                }
+                //game has started (p2 is rejoining game)
+                else{
+                    $sql = "SELECT userID FROM users WHERE player = 1";
+                    $result = mysqli_query($con,$sql);
+                    //no active player, so I must have been the active one
+                    if(mysqli_num_rows($result) == 0){
+                        $sql = "UPDATE users SET player = 1 WHERE playerOrder = 2";
+                        mysqli_query($con,$sql);
+                    }
+                }
                 $sql = "UPDATE UnitMap SET userID = '".$userID."' WHERE userID = 'hostile'";
                 mysqli_query($con,$sql);
-                $sql = "UPDATE AdminMap SET Owner = '".$userID."' WHERE (AreaType = 'town_hostile_start' AND Owner = '') OR Owner = 'hostile'";
+                $sql = "UPDATE AdminMap SET Owner = '".$userID."' WHERE Owner = 'hostile'";
                 mysqli_query($con,$sql);
                 $code = "player 2 assigned";
         }
@@ -70,6 +89,3 @@ echo json_encode($response);
 
 mysqli_close($con);
 ?>
-
-
-

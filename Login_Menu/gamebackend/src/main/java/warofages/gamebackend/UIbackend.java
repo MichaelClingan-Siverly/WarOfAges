@@ -265,11 +265,11 @@ public class UIbackend implements AsyncResultHandler{
         if(mapIdManipulated == -1 && getUnitFromMap(mapID, false) != null) {
             //display unit stats
             double[] stats = player.getUnitStats(mapID, terrainMap[mapID], false);
-            UI.setInfoBar("Enemy Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + Math.round(stats[2]*10000)/100 + "%");
+            UI.setInfoBar("Enemy Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + (int)(stats[2]*100) + "%");
         }
         else if(mapIdManipulated == -1 && getUnitFromMap(mapID, true) != null){
             double[] stats = player.getUnitStats(mapID, terrainMap[mapID], true);
-            UI.setInfoBar("Unit Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + Math.round(stats[2]*10000)/100 + "%");
+            UI.setInfoBar("Unit Health: " + (int) stats[0] + ", Attack: " + (int) stats[1] + ", Defense: " + (int)(stats[2]*100) + "%");
         }
         //if there was no friendly or enemy unit there, display cash instead
         else if(mapIdManipulated != -1)

@@ -31,7 +31,7 @@ if(mysqli_num_rows($result)>0){
 //if the $sql fails this happens
 else{
         $code = "login_failed";
-        $message = "User not found";
+        $message = "Incorrect username or password";
 		array_push($response,array("code"=>$code));
 		array_push($response,array("message"=>$message));
         //The code and message is turned in a JSON object and outputted
